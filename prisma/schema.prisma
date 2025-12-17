@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  gratitudeEntries GratitudeEntry[]
+  tasks     Task[]
+  visionItems VisionItem[]
+  method369Entries Method369Entry[]
+  focusSessions FocusSession[]
+  timerPauses   TimerPause[]
+  timerStops    TimerStop[]
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model GratitudeEntry {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  period     String
+  periodKey  String
+  payload    Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@unique([userId, period, periodKey])
+}
+
+model Task {
+  id         String   @id
+  userId     Int
+  title      String
+  category   String
+  done       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model VisionItem {
+  id         String   @id
+  userId     Int
+  title      String
+  imageUrl   String?
+  description String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Method369Entry {
+  id         String   @id
+  userId     Int
+  phrase     String
+  date       DateTime
+  morningCount  Int   @default(0)
+  afternoonCount Int  @default(0)
+  eveningCount   Int  @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@unique([userId, date])
+}
+
+model FocusSession {
+  id         String   @id
+  userId     Int
+  startAt    DateTime
+  endAt      DateTime?
+  // Planned duration in minutes at start
+  plannedMinutes Int?
+  // Actual total minutes (computed on stop)
+  durationMinutes Int?
+  // 'focus' or 'break'
+  mode       String  @default("focus")
+  // For restoring an active countdown across refresh
+  targetEnd  DateTime?
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+  pauses     TimerPause[]
+  stops      TimerStop[]
+
+  @@index([userId])
+}
+
+model TimerPause {
+  id         String   @id
+  sessionId  String
+  userId     Int
+  startedAt  DateTime
+  endedAt    DateTime?
+  createdAt  DateTime @default(now())
+
+  session    FocusSession @relation(fields: [sessionId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model TimerStop {
+  id         String   @id
+  sessionId  String
+  userId     Int
+  stoppedAt  DateTime
+  createdAt  DateTime @default(now())
+
+  session    FocusSession @relation(fields: [sessionId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+}
