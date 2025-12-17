@@ -1,1 +1,59 @@
 node_modules
+
+# Next.js build output
+.next/
+out/
+
+# Common build directories
+dist/
+build/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Caches
+.cache/
+.eslintcache
+.stylelintcache
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+.idea/
+.vscode/
+*.iml
+
+# Deployment provider configs
+.vercel/
+.netlify/
+
+# Yarn Plug'n'Play
+.pnp/
+.pnp.*
+
+# Turbo repo cache
+.turbo/
+
+# Local databases (e.g., Prisma/SQLite)
+*.sqlite
+*.db
+
+# Temporary directories
+tmp/
+temp/
