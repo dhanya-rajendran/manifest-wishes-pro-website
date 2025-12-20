@@ -7,6 +7,7 @@ type CreateTaskBody = {
   title: string
   category: string
   done?: boolean
+  createdAt?: string
 }
 
 function isString(x: unknown): x is string {
@@ -25,9 +26,11 @@ function parseCreateTaskBody(input: unknown): CreateTaskBody | null {
   if (!isString(title) || !isString(category)) return null
   const id = obj.id
   const done = obj.done
+  const createdAt = obj.createdAt
   if (id !== undefined && !isString(id)) return null
   if (done !== undefined && !isBoolean(done)) return null
-  return { title, category, id: id as string | undefined, done: done as boolean | undefined }
+  if (createdAt !== undefined && !isString(createdAt)) return null
+  return { title, category, id: id as string | undefined, done: done as boolean | undefined, createdAt: createdAt as string | undefined }
 }
 
 function getUserId(request: Request): number | null {
@@ -110,7 +113,17 @@ export async function POST(request: Request) {
   try { json = await request.json() } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 }) }
   const body = parseCreateTaskBody(json)
   if (!body) return NextResponse.json({ ok: false, error: 'Missing title or category' }, { status: 400 })
-  const { id, title, category, done } = body
+  const { id, title, category, done, createdAt } = body
+
+  let createdAtDate: Date | undefined
+  if (createdAt) {
+    // Accept either YYYY-MM-DD or any ISO-parseable string
+    if (/^\d{4}-\d{2}-\d{2}$/.test(createdAt)) {
+      createdAtDate = new Date(`${createdAt}T00:00:00.000Z`)
+    } else if (!Number.isNaN(Date.parse(createdAt))) {
+      createdAtDate = new Date(createdAt)
+    }
+  }
 
   const task = await prisma.task.create({
     data: {
@@ -119,6 +132,7 @@ export async function POST(request: Request) {
       title,
       category,
       done: done ?? false,
+      ...(createdAtDate ? { createdAt: createdAtDate } : {}),
     },
   })
   return NextResponse.json({ ok: true, task })

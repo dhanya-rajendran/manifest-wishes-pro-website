@@ -1,7 +1,7 @@
 {
+  "/api/categories/route": "app/api/categories/route.js",
   "/api/auth/me/route": "app/api/auth/me/route.js",
-  "/api/timer/active/route": "app/api/timer/active/route.js",
   "/api/tasks/route": "app/api/tasks/route.js",
-  "/dashboard/tasks/page": "app/dashboard/tasks/page.js",
-  "/dashboard/tasks/kanban/page": "app/dashboard/tasks/kanban/page.js"
+  "/api/timer/active/route": "app/api/timer/active/route.js",
+  "/dashboard/tasks/calendar/page": "app/dashboard/tasks/calendar/page.js"
 }

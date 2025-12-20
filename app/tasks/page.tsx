@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import type { ComponentType, SVGProps } from 'react'
 import { format } from 'date-fns'
-import { Pencil, Trash2, Briefcase, Heart, User as UserIcon, Target, Check } from 'lucide-react'
+import { Pencil, Trash2, Briefcase, Heart, User as UserIcon, Target, Check, Tag, Bell, Car, Newspaper } from 'lucide-react'
 import { Toast } from '@base-ui/react/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from '@/components/ui/filters'
@@ -22,12 +22,26 @@ const CATEGORIES: { key: Category; label: string }[] = [
   { key: 'goal', label: 'Goal' },
 ]
 
-const CATEGORY_META: Record<Category, { label: string; classes: string; icon: ComponentType<SVGProps<SVGSVGElement>> }> = {
+const CATEGORY_META: Record<string, { label: string; classes: string; icon: ComponentType<SVGProps<SVGSVGElement>> }> = {
   work: { label: 'Work', classes: 'border-indigo-600 text-indigo-700 bg-white', icon: Briefcase },
   health: { label: 'Health', classes: 'border-green-600 text-green-700 bg-white', icon: Heart },
   personal: { label: 'Personal', classes: 'border-violet-600 text-violet-700 bg-white', icon: UserIcon },
   goal: { label: 'Goal', classes: 'border-blue-600 text-blue-700 bg-white', icon: Target },
 }
+
+function getIconForCategory(name?: string) {
+  const key = (name || '').toLowerCase()
+  if (key === 'work') return Briefcase
+  if (key === 'health') return Heart
+  if (key === 'personal') return UserIcon
+  if (key === 'goal') return Target
+  if (/car|vehicle|auto/.test(key)) return Car
+  if (/news|article|feed/.test(key)) return Newspaper
+  if (/reminder|alert|notify|bell/.test(key)) return Bell
+  return Tag
+}
+
+function capitalize(s: string) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
 
 export default function TasksPage() {
   const router = useRouter()
@@ -54,12 +68,15 @@ export default function TasksPage() {
       header: 'Category',
       cell: ({ row }) => {
         const cat = row.original.category
-        const meta = CATEGORY_META[cat]
-        const Icon = meta.icon
+        const key = String(cat).toLowerCase()
+        const meta = CATEGORY_META[key]
+        const Icon = meta?.icon ?? getIconForCategory(key)
+        const classes = meta?.classes ?? 'border-gray-300 text-gray-700 bg-white'
+        const label = meta?.label ?? capitalize(key)
         return (
-          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${meta.classes}`}>
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${classes}`}>
             <Icon className="h-3.5 w-3.5" />
-            {meta.label}
+            {label}
           </span>
         )
       }

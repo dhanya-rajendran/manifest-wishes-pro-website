@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Plus, GripVertical, Briefcase, Heart, User, Target } from 'lucide-react';
+import { Plus, GripVertical, Briefcase, Heart, User, Target, Tag, Car, Newspaper, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Kanban,
@@ -50,6 +50,18 @@ const COLUMN_BG: Record<string, string> = {
   open: 'rounded-md border p-2.5 shadow-xs bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-muted/60 dark:to-muted/40',
   done: 'rounded-md border p-2.5 shadow-xs bg-gradient-to-br from-sky-50 to-indigo-50 dark:from-muted/60 dark:to-muted/40',
 };
+
+function getIconForCategory(name?: string) {
+  const key = (name || '').toLowerCase()
+  if (key === 'work') return Briefcase
+  if (key === 'health') return Heart
+  if (key === 'personal') return User
+  if (key === 'goal') return Target
+  if (/car|vehicle|auto/.test(key)) return Car
+  if (/news|article|feed/.test(key)) return Newspaper
+  if (/reminder|alert|notify|bell/.test(key)) return Bell
+  return Tag
+}
 
 interface TaskCardProps extends Omit<React.ComponentProps<typeof KanbanItem>, 'value' | 'children'> {
   task: Task;
@@ -93,20 +105,14 @@ function TaskCard({ task, ...props }: TaskCardProps) {
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium text-sm flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{displayTitle}</span>
             {task.category && (() => {
-              const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-                work: Briefcase,
-                health: Heart,
-                personal: User,
-                goal: Target,
-              };
-              const Icon = iconMap[task.category];
+              const Icon = getIconForCategory(task.category)
               return (
                 <Badge
                   variant={meta.variant}
                   appearance="outline"
                   className="pointer-events-none h-5 rounded-sm px-1.5 text-[11px] capitalize shrink-0 inline-flex items-center gap-1"
                 >
-                  {Icon ? <Icon className="size-3" /> : null}
+                  <Icon className="size-3" />
                   <span>{task.category}</span>
                 </Badge>
               );
@@ -226,7 +232,8 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
   const [addOpen, setAddOpen] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState('');
   const [newCategory, setNewCategory] = React.useState<string>('work');
-  const categories = React.useMemo(() => ['work', 'health', 'personal', 'goal'] as const, []);
+  const [categories, setCategories] = React.useState<string[]>(['work', 'health', 'personal', 'goal']);
+  const [canAddCategory, setCanAddCategory] = React.useState<boolean>(false);
 
   const load = React.useCallback(async () => {
     try {
@@ -260,7 +267,26 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
     }
   }, [filters]);
 
+  const loadCategories = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/categories', { credentials: 'include' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json() as { ok: boolean; categories?: string[]; canAdd?: boolean }
+      if (data.ok) {
+        const cats = Array.isArray(data.categories) ? data.categories : ['work', 'health', 'personal', 'goal']
+        setCategories(cats)
+        // Keep selection valid
+        if (!cats.includes(newCategory)) setNewCategory(cats[0] ?? 'work')
+        setCanAddCategory(Boolean(data.canAdd))
+      }
+    } catch {
+      setCategories(['work', 'health', 'personal', 'goal'])
+      setCanAddCategory(false)
+    }
+  }, [newCategory])
+
   React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { loadCategories() }, [loadCategories])
 
   const handleValueChange = async (next: Record<string, Task[]>) => {
     setColumns(next);
@@ -346,17 +372,16 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
           </DialogHeader>
           <DialogBody>
             <div className="mb-3">
-              <ToggleGroup type="single" value={newCategory} onValueChange={(v) => v && setNewCategory(v)}>
+              <ToggleGroup
+                type="single"
+                value={newCategory}
+                onValueChange={(v) => v && setNewCategory(v)}
+                className="flex flex-wrap gap-2"
+              >
                 {categories.map((c) => (
                   <ToggleGroupItem key={c} value={c} aria-label={c}>
                     {(() => {
-                      const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-                        work: Briefcase,
-                        health: Heart,
-                        personal: User,
-                        goal: Target,
-                      };
-                      const Icon = iconMap[c];
+                      const Icon = getIconForCategory(c)
                       const variant = (c === 'work') ? 'info' : (c === 'health') ? 'success' : (c === 'goal') ? 'warning' : (c === 'personal') ? 'primary' : 'primary';
                       return (
                         <Badge
@@ -364,7 +389,7 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
                           appearance="outline"
                           className="h-6 rounded-sm px-2 text-xs capitalize inline-flex items-center gap-1"
                         >
-                          {Icon ? <Icon className="size-3" /> : null}
+                          <Icon className="size-3" />
                           <span>{c}</span>
                         </Badge>
                       );
@@ -372,6 +397,68 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  id="add-category-input"
+                  type="text"
+                  placeholder={canAddCategory ? "Add custom category (e.g., reminder)" : "Upgrade to Pro to add categories"}
+                  className="flex-1 rounded-md border bg-background p-2 text-xs"
+                  disabled={!canAddCategory}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter') {
+                      const val = (e.currentTarget.value || '').trim().toLowerCase()
+                      if (!val) return
+                      try {
+                        const res = await fetch('/api/categories', {
+                          method: 'POST',
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ name: val }),
+                        })
+                        if (!res.ok) {
+                          const data = await res.json().catch(() => ({}))
+                          throw new Error(data?.error || 'Failed to add category')
+                        }
+                        e.currentTarget.value = ''
+                        await loadCategories()
+                        setNewCategory(val)
+                        toast.success('Category added')
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : 'Failed to add category')
+                      }
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!canAddCategory}
+                  onClick={async () => {
+                    const el = (document.activeElement as HTMLInputElement)
+                    const input = el && el.tagName === 'INPUT' ? el : (document.querySelector('#add-category-input') as HTMLInputElement)
+                    const val = (input?.value || '').trim().toLowerCase()
+                    if (!val) return
+                    try {
+                      const res = await fetch('/api/categories', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: val }),
+                      })
+                      if (!res.ok) {
+                        const data = await res.json().catch(() => ({}))
+                        throw new Error(data?.error || 'Failed to add category')
+                      }
+                      if (input) input.value = ''
+                      await loadCategories()
+                      setNewCategory(val)
+                      toast.success('Category added')
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : 'Failed to add category')
+                    }
+                  }}
+                >Add</Button>
+              </div>
             </div>
             <div className="mb-2">
               <textarea

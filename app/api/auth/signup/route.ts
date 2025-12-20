@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) return NextResponse.json({ error: 'Email in use' }, { status: 400 })
   const passwordHash = await hashPassword(password)
-  const user = await prisma.user.create({ data: { email, password: passwordHash, name } })
+  const user = await prisma.user.create({ data: { email, password: passwordHash, name, plan: 'free' } })
   const token = signToken({ uid: user.id, email: user.email })
   const res = NextResponse.json({ ok: true })
   res.cookies.set('auth_token', token, { httpOnly: true, sameSite: 'lax', path: '/' })

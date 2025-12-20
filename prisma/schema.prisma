@@ -11,6 +11,8 @@ model User {
   email     String   @unique
   name      String
   password  String
+  // 'free' or 'pro' plan for feature gating
+  plan      String   @default("free")
   createdAt DateTime @default(now())
   gratitudeEntries GratitudeEntry[]
   tasks     Task[]
@@ -19,6 +21,7 @@ model User {
   focusSessions FocusSession[]
   timerPauses   TimerPause[]
   timerStops    TimerStop[]
+  categories     UserCategory[]
 }
 
 model ContactMessage {
@@ -141,4 +144,17 @@ model TimerStop {
 
   @@index([userId])
   @@index([sessionId])
+}
+
+model UserCategory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@unique([userId, name])
 }

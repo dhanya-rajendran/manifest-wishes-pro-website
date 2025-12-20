@@ -11,15 +11,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/layout.js"
     ],
-    "/dashboard/tasks/page": [
+    "/dashboard/tasks/calendar/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tasks/page.js"
+      "static/chunks/app/dashboard/tasks/calendar/page.js"
     ],
     "/api/auth/me/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/auth/me/route.js"
+    ],
+    "/api/categories/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/categories/route.js"
     ],
     "/api/tasks/route": [
       "static/chunks/webpack.js",
@@ -30,11 +35,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/timer/active/route.js"
-    ],
-    "/dashboard/tasks/kanban/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tasks/kanban/page.js"
     ]
   }
 }

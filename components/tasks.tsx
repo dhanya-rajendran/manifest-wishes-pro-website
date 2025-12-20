@@ -1,17 +1,15 @@
 "use client";
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { toast } from 'sonner'
+import { Briefcase, HeartPulse, User, Target, Tag } from 'lucide-react'
 
 type Category = string
 type Task = { id: string; title: string; category: Category; done: boolean; createdAt: string }
-const DEFAULT_CATEGORIES: { key: Category; label: string }[] = [
-  { key: 'work', label: 'Work' },
-  { key: 'health', label: 'Health' },
-  { key: 'personal', label: 'Personal' },
-  { key: 'goal', label: 'Goal' },
-]
+const DEFAULT_CATEGORIES = ['work', 'health', 'personal', 'goal'] as const
 
 export default function TasksPanel() {
-  const [categories] = useState(DEFAULT_CATEGORIES)
+  const [categories, setCategories] = useState<string[]>(Array.from(DEFAULT_CATEGORIES))
+  const [canAddCategory, setCanAddCategory] = useState(false)
   const [tasks, setTasks] = useState<Task[]>([])
   const [filter, setFilter] = useState<Category | 'all'>('all')
   const [title, setTitle] = useState('')
@@ -23,6 +21,21 @@ export default function TasksPanel() {
     const id = window.requestAnimationFrame(() => setMounted(true))
     return () => window.cancelAnimationFrame(id)
   }, [])
+
+  const loadCategories = async () => {
+    try {
+      const res = await fetch('/api/categories', { credentials: 'include' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      const cats: string[] = Array.isArray(data?.categories) ? data.categories : Array.from(DEFAULT_CATEGORIES)
+      setCategories(cats)
+      setCanAddCategory(Boolean(data?.canAdd))
+      if (!cats.includes(category)) setCategory(cats[0] ?? 'work')
+    } catch {
+      setCategories(Array.from(DEFAULT_CATEGORIES))
+      setCanAddCategory(false)
+    }
+  }
 
   const loadTasks = async () => {
     try {
@@ -40,6 +53,7 @@ export default function TasksPanel() {
   }
 
   useEffect(() => { loadTasks() }, [filter])
+  useEffect(() => { loadCategories() }, [])
 
   const addTask = async () => {
     const trimmed = title.trim()
@@ -99,10 +113,19 @@ export default function TasksPanel() {
 
   const categoryCounts = useMemo(() => {
     const counts = new Map<Category, number>()
-    categories.forEach(c => counts.set(c.key, 0))
+    categories.forEach(c => counts.set(c, 0))
     tasks.forEach(t => counts.set(t.category, (counts.get(t.category) ?? 0) + 1))
     return counts
   }, [tasks, categories])
+
+  const getCategoryIcon = (c: string) => {
+    const key = c.toLowerCase()
+    if (key === 'work') return Briefcase
+    if (key === 'health') return HeartPulse
+    if (key === 'personal') return User
+    if (key === 'goal') return Target
+    return Tag
+  }
 
   return (
     <div className="rounded-lg border p-6">
@@ -125,16 +148,20 @@ export default function TasksPanel() {
           className="rounded border px-2 py-1.5 text-sm"
         >
           <option value="all">All</option>
-          {categories.map(c => (<option key={c.key} value={c.key}>{c.label}</option>))}
+          {categories.map(c => (<option key={c} value={c}>{c}</option>))}
         </select>
         <div className="text-sm text-gray-600">All: {totalCount} · Completed: {completedCount}</div>
         <div className="-mb-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
-          {categories.map(c => (
-            <span key={c.key} className="inline-flex items-center gap-1 rounded-full border bg-white px-2 py-0.5">
-              <span className="text-gray-700">{c.label}:</span>
-              <span className="font-medium text-gray-900">{categoryCounts.get(c.key) ?? 0}</span>
-            </span>
-          ))}
+          {categories.map(c => {
+            const Icon = getCategoryIcon(c)
+            return (
+              <span key={c} className="inline-flex items-center gap-1 rounded-full border bg-white px-2 py-0.5">
+                <Icon className="size-3.5 text-gray-500" />
+                <span className="text-gray-700 capitalize">{c}:</span>
+                <span className="font-medium text-gray-900">{categoryCounts.get(c) ?? 0}</span>
+              </span>
+            )
+          })}
         </div>
       </div>
 
@@ -143,8 +170,37 @@ export default function TasksPanel() {
         <div className="flex flex-wrap items-center gap-2">
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" className="min-w-[220px] flex-1 rounded border px-3 py-2 text-sm"/>
           <select value={category} onChange={e => setCategory(e.target.value)} className="rounded border px-2.5 py-2 text-sm">
-            {categories.map(c => (<option key={c.key} value={c.key}>{c.label}</option>))}
+            {categories.map(c => (<option key={c} value={c}>{c}</option>))}
           </select>
+          <input
+            placeholder={canAddCategory ? 'Add custom category' : 'Pro required to add'}
+            className="min-w-[180px] rounded border px-3 py-2 text-xs"
+            disabled={!canAddCategory}
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter') {
+                const val = (e.currentTarget.value || '').trim().toLowerCase()
+                if (!val) return
+                try {
+                  const res = await fetch('/api/categories', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: val }),
+                  })
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => null)
+                    throw new Error(data?.error || 'Failed to add category')
+                  }
+                  e.currentTarget.value = ''
+                  await loadCategories()
+                  setCategory(val)
+                  toast.success('Category added')
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Failed to add category')
+                }
+              }
+            }}
+          />
           <button onClick={addTask} className="rounded bg-indigo-600 px-3 py-1.5 text-xs text-white">Add</button>
         </div>
       </div>
@@ -167,7 +223,15 @@ export default function TasksPanel() {
                 <span className={`text-gray-900 ${t.done ? 'line-through text-gray-500' : ''}`}>{t.title}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded border bg-white px-2 py-0.5 text-xs text-gray-700">{t.category}</span>
+                {(() => {
+                  const Icon = getCategoryIcon(t.category)
+                  return (
+                    <span className="inline-flex items-center gap-1 rounded border bg-white px-2 py-0.5 text-xs text-gray-700">
+                      <Icon className="size-3.5 text-gray-500" />
+                      <span className="capitalize">{t.category}</span>
+                    </span>
+                  )
+                })()}
                 <button onClick={() => removeTask(t.id)} className="rounded bg-red-500 px-2 py-1 text-xs text-white">Delete</button>
               </div>
             </div>
