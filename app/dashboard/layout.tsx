@@ -83,9 +83,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Navbar />
       <FocusTimerProvider>
         <main className="mx-auto max-w-7xl px-4 py-8">
-          <div className="grid grid-cols-[auto,1fr] gap-5">
+          {/* Use single column on mobile; show sidebar only on lg+ */}
+          <div className="grid grid-cols-1 lg:grid-cols-[auto,1fr] gap-5">
             {/* Sidebar */}
-            <div className={collapsed ? 'w-14' : 'w-[220px]'}>
+            <div className={cn('hidden lg:block', collapsed ? 'w-14' : 'w-[220px]')}>
               <div className="sticky top-24 h-full">
                 <ScrollArea
                   className={cn('h-[calc(100vh-220px)]')}

@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogBody, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import AddTaskDialog from '@/components/add-task-dialog'
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -55,8 +54,7 @@ export default function TasksCalendar() {
   const [canAddCategory, setCanAddCategory] = React.useState(false)
   const [addOpen, setAddOpen] = React.useState(false)
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(null)
-  const [newCategory, setNewCategory] = React.useState('work')
-  const [newTitle, setNewTitle] = React.useState('')
+  
 
   const monthLabel = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(current)
 
@@ -141,12 +139,13 @@ export default function TasksCalendar() {
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
+      <div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1 sm:gap-2">
         {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
-          <div key={d} className="text-xs font-medium text-muted-foreground px-1">{d}</div>
+          <div key={d} className="hidden lg:block text-xs font-medium text-muted-foreground px-1">{d}</div>
         ))}
         {loading ? (
-          Array.from({ length: 35 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)
+          Array.from({ length: 35 }).map((_, i) => <Skeleton key={i} className="h-20 sm:h-24 w-full" />)
         ) : (
           getMonthDays(current).map((d, idx) => {
             const isBlank = Number.isNaN(d.getTime())
@@ -158,148 +157,64 @@ export default function TasksCalendar() {
             const canAddHere = d.getTime() >= todayUTC.getTime()
             const isToday = d.getUTCFullYear() === todayUTC.getUTCFullYear() && d.getUTCMonth() === todayUTC.getUTCMonth() && d.getUTCDate() === todayUTC.getUTCDate()
             return (
-              <Card key={key} className={`h-28 overflow-hidden ${isToday ? 'ring-2 ring-primary' : ''} ${list.length > 0 ? 'bg-primary/5' : ''}`}>
-                <CardHeader className="p-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium">{d.getUTCDate()}</span>
-                    <div className="flex items-center gap-1">
-                      {list.length > 0 ? (
-                        <HoverCard openDelay={100} closeDelay={100}>
-                          <HoverCardTrigger asChild>
-                            <Badge variant="secondary" className="h-5 px-1 text-[10px] cursor-pointer">{list.length}</Badge>
-                          </HoverCardTrigger>
-                          <HoverCardContent className="w-64 p-2">
-                            <div className="text-xs font-medium mb-2">Tasks on {key}</div>
-                            <ScrollArea className="h-40">
-                              <div className="space-y-2 pr-2">
-                                {list.map((t) => (
-                                  <div key={t.id} className="rounded-md border bg-card p-2">
-                                    <div className="text-[11px] font-medium truncate">{t.title}</div>
-                                    <div className="text-[11px] text-muted-foreground">
-                                      <span className="capitalize">{t.category}</span> · {t.done ? 'Done' : 'Open'}
-                                    </div>
+              <Card key={key} className={`h-20 sm:h-24 overflow-hidden ${isToday ? 'border-2 border-primary' : ''} ${list.length > 0 ? 'bg-primary/5' : ''}`}>
+                <CardHeader className="relative p-1.5 sm:p-2 h-full">
+                  <span className={`absolute left-1/2 -translate-x-1/2 ${isToday ? 'font-bold' : 'font-semibold'} text-base sm:text-lg`}>{d.getUTCDate()}</span>
+                  <div className="absolute right-1.5 sm:right-2 top-1.5 sm:top-2 flex items-center gap-1">
+                    {list.length > 0 && (
+                      <HoverCard openDelay={100} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <Badge variant="secondary" className="h-5 px-1 text-[10px] cursor-pointer">{list.length}</Badge>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-64 p-2">
+                          <div className="text-xs font-medium mb-2">Tasks on {key}</div>
+                          <ScrollArea className="h-40">
+                            <div className="space-y-2 pr-2">
+                              {list.map((t) => (
+                                <div key={t.id} className="rounded-md border bg-card p-2">
+                                  <div className="text-[11px] font-medium truncate">{t.title}</div>
+                                  <div className="text-[11px] text-muted-foreground">
+                                    <span className="capitalize">{t.category}</span> · {t.done ? 'Done' : 'Open'}
                                   </div>
-                                ))}
-                              </div>
-                            </ScrollArea>
-                          </HoverCardContent>
-                        </HoverCard>
-                      ) : null}
-                      {canAddHere ? (
-                        <Button
-                          variant="ghost"
-                          onClick={() => { setSelectedDate(d); setAddOpen(true) }}
-                          className="h-5 px-2"
-                          aria-label="Add task"
-                        >
-                          <Plus className="size-3" />
-                        </Button>
-                      ) : null}
-                    </div>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </HoverCardContent>
+                      </HoverCard>
+                    )}
+                    {canAddHere && (
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        onClick={() => { setSelectedDate(d); setAddOpen(true) }}
+                        aria-label="Add task"
+                      >
+                        <Plus className="size-3" />
+                      </Button>
+                    )}
                   </div>
                 </CardHeader>
-                <CardContent className="-mt-2 px-2 pb-2">
-                  <ScrollArea className="h-20">
-                    <ul className="space-y-1 pr-2">
-                      {list.map((t) => (
-                        <li key={t.id}>
-                          <HoverCard openDelay={100} closeDelay={100}>
-                            <HoverCardTrigger asChild>
-                              <div className="flex items-center justify-between rounded-md border bg-card px-2 py-1">
-                                <div className="text-[11px] font-medium truncate">
-                                  {truncateText(t.title || '')}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Badge variant="outline" className="text-[10px] px-1">
-                                    {t.done ? 'Done' : 'Open'}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </HoverCardTrigger>
-                            <HoverCardContent className="w-64 p-2">
-                              <div className="text-xs font-medium mb-1">{t.title}</div>
-                              <div className="text-[11px] text-muted-foreground">
-                                <span className="capitalize">{t.category}</span> · {t.done ? 'Done' : 'Open'}
-                              </div>
-                            </HoverCardContent>
-                          </HoverCard>
-                        </li>
-                      ))}
-                    </ul>
-                  </ScrollArea>
-                </CardContent>
               </Card>
             )
           })
         )}
+        </div>
       </div>
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Task</DialogTitle>
-            <DialogDescription>
-              {selectedDate ? `Create on ${formatDate(selectedDate)}. Select a category and enter task details.` : 'Select a category and enter task details.'}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            <div className="mb-3">
-              <ToggleGroup
-                type="single"
-                value={newCategory}
-                onValueChange={(v) => v && setNewCategory(v)}
-                className="flex flex-wrap gap-2"
-              >
-                {categories.map((c) => (
-                  <ToggleGroupItem key={c} value={c} aria-label={c} className="capitalize">
-                    {c}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
-            <div className="mb-2">
-              <textarea
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Task title"
-                className="w-full rounded-md border bg-background p-2 text-sm"
-                rows={3}
-              />
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Close</Button>
-            </DialogClose>
-            <Button
-              type="button"
-              onClick={async () => {
-                const title = newTitle.trim()
-                if (!title) return
-                try {
-                  const res = await fetch('/api/tasks', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, category: newCategory, done: false, ...(selectedDate ? { createdAt: formatDate(selectedDate) } : {}) }),
-                  })
-                  if (!res.ok) throw new Error('Failed to create')
-                  setAddOpen(false)
-                  setNewTitle('')
-                  setSelectedDate(null)
-                  await loadTasks()
-                  toast.success('Task created', { description: 'Added to calendar' })
-                } catch (e) {
-                  toast.error('Failed to create task')
-                }
-              }}
-              disabled={!newTitle.trim()}
-            >
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddTaskDialog
+        open={addOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o)
+          if (!o) setSelectedDate(null)
+        }}
+        categories={categories}
+        canAddCategory={canAddCategory}
+        selectedDate={selectedDate ? formatDate(selectedDate) : null}
+        onSuccess={async () => {
+          await loadTasks()
+        }}
+      />
     </div>
   )
 }

@@ -3,17 +3,7 @@ import * as React from 'react';
 import { Badge, badgeVariants } from '@/components/ui/badge';
 import type { VariantProps } from 'class-variance-authority';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogBody,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import AddTaskDialog from '@/components/add-task-dialog';
 import { Plus, GripVertical, Briefcase, Heart, User, Target, Tag, Car, Newspaper, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -230,8 +220,6 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
   const [columns, setColumns] = React.useState<Record<string, Task[]>>({ open: [], done: [] });
   const prevMapRef = React.useRef<Map<string, string>>(new Map());
   const [addOpen, setAddOpen] = React.useState(false);
-  const [newTitle, setNewTitle] = React.useState('');
-  const [newCategory, setNewCategory] = React.useState<string>('work');
   const [categories, setCategories] = React.useState<string[]>(['work', 'health', 'personal', 'goal']);
   const [canAddCategory, setCanAddCategory] = React.useState<boolean>(false);
 
@@ -275,15 +263,13 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
       if (data.ok) {
         const cats = Array.isArray(data.categories) ? data.categories : ['work', 'health', 'personal', 'goal']
         setCategories(cats)
-        // Keep selection valid
-        if (!cats.includes(newCategory)) setNewCategory(cats[0] ?? 'work')
         setCanAddCategory(Boolean(data.canAdd))
       }
     } catch {
       setCategories(['work', 'health', 'personal', 'goal'])
       setCanAddCategory(false)
     }
-  }, [newCategory])
+  }, [])
 
   React.useEffect(() => { load(); }, [load]);
   React.useEffect(() => { loadCategories() }, [loadCategories])
@@ -313,7 +299,7 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
 
   return (
     <Kanban value={columns} onValueChange={handleValueChange} getItemValue={(item) => item.id}>
-      <KanbanBoard className="grid auto-rows-fr grid-cols-2 gap-4">
+      <KanbanBoard className="grid auto-rows-fr grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {Object.entries(columns).map(([columnValue, tasks]) => (
           <KanbanColumn key={columnValue} value={columnValue} className={COLUMN_BG[columnValue] ?? 'rounded-md border bg-card p-2.5 shadow-xs'}>
             <div className="flex items-center justify-between mb-2.5">
@@ -364,144 +350,15 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
           return <TaskCard task={task} />;
         }}
       </KanbanOverlay>
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Task</DialogTitle>
-            <DialogDescription>Select a category and enter task details.</DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            <div className="mb-3">
-              <ToggleGroup
-                type="single"
-                value={newCategory}
-                onValueChange={(v) => v && setNewCategory(v)}
-                className="flex flex-wrap gap-2"
-              >
-                {categories.map((c) => (
-                  <ToggleGroupItem key={c} value={c} aria-label={c}>
-                    {(() => {
-                      const Icon = getIconForCategory(c)
-                      const variant = (c === 'work') ? 'info' : (c === 'health') ? 'success' : (c === 'goal') ? 'warning' : (c === 'personal') ? 'primary' : 'primary';
-                      return (
-                        <Badge
-                          variant={variant as BadgeVariant}
-                          appearance="outline"
-                          className="h-6 rounded-sm px-2 text-xs capitalize inline-flex items-center gap-1"
-                        >
-                          <Icon className="size-3" />
-                          <span>{c}</span>
-                        </Badge>
-                      );
-                    })()}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  id="add-category-input"
-                  type="text"
-                  placeholder={canAddCategory ? "Add custom category (e.g., reminder)" : "Upgrade to Pro to add categories"}
-                  className="flex-1 rounded-md border bg-background p-2 text-xs"
-                  disabled={!canAddCategory}
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter') {
-                      const val = (e.currentTarget.value || '').trim().toLowerCase()
-                      if (!val) return
-                      try {
-                        const res = await fetch('/api/categories', {
-                          method: 'POST',
-                          credentials: 'include',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ name: val }),
-                        })
-                        if (!res.ok) {
-                          const data = await res.json().catch(() => ({}))
-                          throw new Error(data?.error || 'Failed to add category')
-                        }
-                        e.currentTarget.value = ''
-                        await loadCategories()
-                        setNewCategory(val)
-                        toast.success('Category added')
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : 'Failed to add category')
-                      }
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!canAddCategory}
-                  onClick={async () => {
-                    const el = (document.activeElement as HTMLInputElement)
-                    const input = el && el.tagName === 'INPUT' ? el : (document.querySelector('#add-category-input') as HTMLInputElement)
-                    const val = (input?.value || '').trim().toLowerCase()
-                    if (!val) return
-                    try {
-                      const res = await fetch('/api/categories', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: val }),
-                      })
-                      if (!res.ok) {
-                        const data = await res.json().catch(() => ({}))
-                        throw new Error(data?.error || 'Failed to add category')
-                      }
-                      if (input) input.value = ''
-                      await loadCategories()
-                      setNewCategory(val)
-                      toast.success('Category added')
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : 'Failed to add category')
-                    }
-                  }}
-                >Add</Button>
-              </div>
-            </div>
-            <div className="mb-2">
-              <textarea
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Task title"
-                className="w-full rounded-md border bg-background p-2 text-sm"
-                rows={4}
-              />
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Close</Button>
-            </DialogClose>
-              <Button
-                type="button"
-                onClick={async () => {
-                  const title = newTitle.trim();
-                  if (!title) return;
-                  try {
-                    const res = await fetch('/api/tasks', {
-                      method: 'POST',
-                      credentials: 'include',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ title, category: newCategory, done: false }),
-                    });
-                    if (!res.ok) throw new Error('Failed to create');
-                    setAddOpen(false);
-                    setNewTitle('');
-                    toast.success('Task created');
-                    await load();
-                } catch (e) {
-                  toast.error('Failed to create task');
-                }
-              }}
-              disabled={!newTitle.trim()}
-            >
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddTaskDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        categories={categories}
+        canAddCategory={canAddCategory}
+        onSuccess={async () => {
+          await load()
+        }}
+      />
     </Kanban>
   );
 }

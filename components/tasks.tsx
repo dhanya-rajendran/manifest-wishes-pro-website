@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { toast } from 'sonner'
 import { Briefcase, HeartPulse, User, Target, Tag } from 'lucide-react'
+import AddTaskDialog from '@/components/add-task-dialog'
+import { Button } from '@/components/ui/button'
 
 type Category = string
 type Task = { id: string; title: string; category: Category; done: boolean; createdAt: string }
@@ -12,10 +14,11 @@ export default function TasksPanel() {
   const [canAddCategory, setCanAddCategory] = useState(false)
   const [tasks, setTasks] = useState<Task[]>([])
   const [filter, setFilter] = useState<Category | 'all'>('all')
-  const [title, setTitle] = useState('')
-  const [category, setCategory] = useState<Category>('work')
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editTask, setEditTask] = useState<Task | null>(null)
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => setMounted(true))
@@ -30,7 +33,6 @@ export default function TasksPanel() {
       const cats: string[] = Array.isArray(data?.categories) ? data.categories : Array.from(DEFAULT_CATEGORIES)
       setCategories(cats)
       setCanAddCategory(Boolean(data?.canAdd))
-      if (!cats.includes(category)) setCategory(cats[0] ?? 'work')
     } catch {
       setCategories(Array.from(DEFAULT_CATEGORIES))
       setCanAddCategory(false)
@@ -55,21 +57,7 @@ export default function TasksPanel() {
   useEffect(() => { loadTasks() }, [filter])
   useEffect(() => { loadCategories() }, [])
 
-  const addTask = async () => {
-    const trimmed = title.trim()
-    if (!trimmed) return
-    try {
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: trimmed, category, done: false }),
-      })
-      if (!res.ok) throw new Error('Failed to create')
-      setTitle('')
-      await loadTasks()
-    } catch {}
-  }
+  
 
   const toggleDone = async (id: string, done: boolean) => {
     try {
@@ -105,7 +93,8 @@ export default function TasksPanel() {
 
   const filtered = useMemo(() => {
     const list = filter === 'all' ? tasks : tasks.filter(t => t.category === filter)
-    return list
+    // Sort by createdAt descending so newest appears first
+    return [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   }, [tasks, filter])
 
   const totalCount = tasks.length
@@ -166,43 +155,17 @@ export default function TasksPanel() {
       </div>
 
       <div className="mt-4 rounded border bg-white p-4">
-        <h3 className="mb-2 text-sm font-semibold text-gray-700">Add Task</h3>
-        <div className="flex flex-wrap items-center gap-2">
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" className="min-w-[220px] flex-1 rounded border px-3 py-2 text-sm"/>
-          <select value={category} onChange={e => setCategory(e.target.value)} className="rounded border px-2.5 py-2 text-sm">
-            {categories.map(c => (<option key={c} value={c}>{c}</option>))}
-          </select>
-          <input
-            placeholder={canAddCategory ? 'Add custom category' : 'Pro required to add'}
-            className="min-w-[180px] rounded border px-3 py-2 text-xs"
-            disabled={!canAddCategory}
-            onKeyDown={async (e) => {
-              if (e.key === 'Enter') {
-                const val = (e.currentTarget.value || '').trim().toLowerCase()
-                if (!val) return
-                try {
-                  const res = await fetch('/api/categories', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: val }),
-                  })
-                  if (!res.ok) {
-                    const data = await res.json().catch(() => null)
-                    throw new Error(data?.error || 'Failed to add category')
-                  }
-                  e.currentTarget.value = ''
-                  await loadCategories()
-                  setCategory(val)
-                  toast.success('Category added')
-                } catch (err) {
-                  toast.error(err instanceof Error ? err.message : 'Failed to add category')
-                }
-              }
-            }}
-          />
-          <button onClick={addTask} className="rounded bg-indigo-600 px-3 py-1.5 text-xs text-white">Add</button>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">Add Task</h3>
+          <Button variant="primary" size="sm" onClick={() => setAddOpen(true)}>Add Task</Button>
         </div>
+        <AddTaskDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          categories={categories}
+          canAddCategory={canAddCategory}
+          onSuccess={async () => { await loadTasks() }}
+        />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3">
@@ -232,12 +195,32 @@ export default function TasksPanel() {
                     </span>
                   )
                 })()}
+                <Button
+                  variant="secondary"
+                  size="xs"
+                  onClick={() => { setEditTask(t); setEditOpen(true); }}
+                >
+                  Edit
+                </Button>
                 <button onClick={() => removeTask(t.id)} className="rounded bg-red-500 px-2 py-1 text-xs text-white">Delete</button>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Edit dialog */}
+      <AddTaskDialog
+        open={editOpen}
+        onOpenChange={(o) => {
+          setEditOpen(o)
+          if (!o) setEditTask(null)
+        }}
+        categories={categories}
+        canAddCategory={canAddCategory}
+        task={editTask ? { id: editTask.id, title: editTask.title, category: editTask.category } : undefined}
+        onSuccess={async () => { await loadTasks() }}
+      />
     </div>
   )
 }

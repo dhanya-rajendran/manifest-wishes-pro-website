@@ -3,14 +3,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import type { ComponentType, SVGProps } from 'react'
 import { format } from 'date-fns'
-import { Pencil, Trash2, Briefcase, Heart, User as UserIcon, Target, Check, Tag, Bell, Car, Newspaper } from 'lucide-react'
+import { Pencil, Trash2, Briefcase, Heart, User as UserIcon, Target, Check, Tag, Bell, Car, Newspaper, Plus } from 'lucide-react'
 import { Toast } from '@base-ui/react/toast'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from '@/components/ui/filters'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Input } from '@base-ui/react/input'
 import { ReToastViewport } from '@/components/ui/reui-toast'
-import { ColumnDef, getCoreRowModel, flexRender, useReactTable } from '@tanstack/react-table'
+import { Button } from '@/components/ui/button'
+import { DataGrid, DataGridContainer } from '@/components/ui/data-grid'
+import { DataGridTable } from '@/components/ui/data-grid-table'
+import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header'
+import { DataGridPagination } from '@/components/ui/data-grid-pagination'
+import { ColumnDef, ExpandedState, getCoreRowModel, getPaginationRowModel, PaginationState, useReactTable, type Row } from '@tanstack/react-table'
+import AddTaskDialog from '@/components/add-task-dialog'
 
 type Category = 'work' | 'health' | 'personal' | 'goal'
 type Task = { id: string; title: string; category: Category; done: boolean; createdAt: string; updatedAt: string }
@@ -48,25 +51,49 @@ export default function TasksPage() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const [tasks, setTasks] = useState<Task[]>([])
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [filters, setFilters] = useState<Filter[]>([])
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
   const [editing, setEditing] = useState<Task | null>(null)
-  const [title, setTitle] = useState('')
-  const [category, setCategory] = useState<Category>('work')
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
+  const [expanded, setExpanded] = useState<ExpandedState>({})
+  const [categories, setCategories] = useState<string[]>([])
+  const [canAddCategory, setCanAddCategory] = useState(false)
   const toastManager = useMemo(() => Toast.createToastManager(), [])
   function showToast(message: string, type: 'success' | 'error') {
     toastManager.add({ title: type === 'success' ? 'Success' : 'Error', description: message, type, timeout: 3000 })
   }
 
+  function truncate20(s: string) { return s.length > 20 ? `${s.slice(0, 20)}…` : s }
+
   const columns = useMemo<ColumnDef<Task>[]>(() => [
-    { header: 'Title', accessorKey: 'title' },
-    {
-      header: 'Category',
-      cell: ({ row }) => {
+    { id: 'expand', header: () => null, cell: ({ row }) => (
+      <span
+        role="button"
+        onClick={row.getToggleExpandedHandler()}
+        className="text-xs font-medium text-primary hover:text-primary/80 cursor-pointer select-none"
+        aria-label={row.getIsExpanded() ? 'Collapse row' : 'Expand row'}
+        title={row.getIsExpanded() ? 'Collapse' : 'Expand'}
+      >
+        [{row.getIsExpanded() ? '-' : '+'}]
+      </span>
+    ), size: 40, enableSorting: false, meta: { expandedContent: (t: Task) => (
+      <div className="bg-muted/30 p-3">
+        <div className="rounded-lg border bg-card p-3 text-sm">
+          <div className="font-medium mb-2">{t.title}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
+            <div><span className="font-medium text-foreground">Created:</span> {formatDisplay(t.createdAt)}</div>
+            <div><span className="font-medium text-foreground">Updated:</span> {t.updatedAt ? formatDisplay(t.updatedAt) : '-'}</div>
+            <div><span className="font-medium text-foreground">Status:</span> {t.done ? 'Done' : 'Open'}</div>
+          </div>
+        </div>
+      </div>
+    ) } },
+    { accessorKey: 'title', header: ({ column }) => <DataGridColumnHeader title="Title" column={column} className="text-foreground font-medium" />, cell: ({ row }) => (
+      <span className="block max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">{truncate20(row.original.title)}</span>
+    ), enableSorting: false, size: 220 },
+    { accessorKey: 'category', header: ({ column }) => <DataGridColumnHeader title="Category" column={column} className="text-foreground font-medium" />, cell: ({ row }) => {
         const cat = row.original.category
         const key = String(cat).toLowerCase()
         const meta = CATEGORY_META[key]
@@ -79,61 +106,50 @@ export default function TasksPage() {
             {label}
           </span>
         )
-      }
-    },
-    {
-      header: 'Created',
-      cell: ({ row }) => formatDisplay(row.original.createdAt),
-    },
-    {
-      header: 'Updated',
-      cell: ({ row }) => row.original.updatedAt ? formatDisplay(row.original.updatedAt) : '-',
-    },
-    {
-      header: 'Status',
-      cell: ({ row }) => (
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${row.original.done ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
+      }, enableSorting: true, size: 120 },
+    { accessorKey: 'createdAt', header: ({ column }) => <DataGridColumnHeader title="Created" column={column} className="text-foreground font-medium" />, cell: ({ row }) => formatDisplay(row.original.createdAt), enableSorting: true, size: 160 },
+    { accessorKey: 'updatedAt', header: ({ column }) => <DataGridColumnHeader title="Updated" column={column} className="text-foreground font-medium" />, cell: ({ row }) => row.original.updatedAt ? formatDisplay(row.original.updatedAt) : '-', enableSorting: true, size: 160 },
+    { id: 'status', header: ({ column }) => <DataGridColumnHeader title="Status" column={column} className="text-foreground font-medium" />, cell: ({ row }) => (
+        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${row.original.done ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
           {row.original.done ? 'Done' : 'Open'}
         </span>
-      )
-    },
-    {
-      header: 'Actions',
-      cell: ({ row }) => (
+      ), enableSorting: false, size: 120 },
+    { id: 'actions', header: ({ column }) => <DataGridColumnHeader title="Actions" column={column} className="text-foreground font-medium" />, cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <button
-            className="inline-flex items-center rounded border px-2 py-1 text-xs hover:bg-gray-100"
-            onClick={() => openEdit(row.original)}
-            aria-label="Edit task"
-            title="Edit"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            className="inline-flex items-center rounded border px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-            onClick={() => removeTask(row.original.id)}
-            aria-label="Delete task"
-            title="Delete"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-          <button
-            className="rounded border px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50"
-            onClick={() => toggleDone(row.original.id, !row.original.done)}
-          >{row.original.done ? 'Mark Open' : 'Mark Done'}</button>
+          <Button variant="outline" size="xs" onClick={() => openEdit(row.original)} aria-label="Edit task" title="Edit">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="outline" size="xs" onClick={() => removeTask(row.original.id)} aria-label="Delete task" title="Delete" className="text-destructive">
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="primary" size="xs" onClick={() => toggleDone(row.original.id, !row.original.done)}>
+            {row.original.done ? 'Mark Open' : 'Mark Done'}
+          </Button>
         </div>
-      )
-    }
+      ), enableSorting: false, size: 180 },
   ], [])
 
-  const table = useReactTable({ data: tasks, columns, getCoreRowModel: getCoreRowModel() })
+  const canExpand = (row: Row<Task>) => true
+  const table = useReactTable({
+    data: tasks,
+    columns,
+    pageCount: Math.max(1, Math.ceil((total || 0) / pagination.pageSize)),
+    state: { pagination, expanded },
+    onPaginationChange: setPagination,
+    onExpandedChange: setExpanded,
+    manualPagination: true,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getRowCanExpand: (row) => canExpand(row),
+    getRowId: (row) => row.id,
+  })
 
   async function loadTasks() {
     try {
       setLoading(true)
       const params = new URLSearchParams()
-      params.set('page', String(page))
-      params.set('limit', String(limit))
+      params.set('page', String(pagination.pageIndex + 1))
+      params.set('limit', String(pagination.pageSize))
       // Map filters into query params for backend
       for (const f of filters) {
         if (f.key === 'title' && f.op === 'contains') {
@@ -166,7 +182,20 @@ export default function TasksPage() {
     }
   }
 
-  useEffect(() => { loadTasks() }, [page, limit, filters])
+  useEffect(() => { loadTasks() }, [pagination.pageIndex, pagination.pageSize, filters])
+
+  async function loadCategories() {
+    try {
+      const res = await fetch('/api/categories', { credentials: 'include' })
+      const data = await res.json().catch(() => null)
+      if (data?.ok) {
+        setCategories(data.categories || [])
+        setCanAddCategory(Boolean(data.canAdd))
+      }
+    } catch {}
+  }
+
+  useEffect(() => { loadCategories() }, [])
 
   // Parse URL params into filters and hydrate UI selections
   useEffect(() => {
@@ -187,45 +216,14 @@ export default function TasksPage() {
 
   function openAdd() {
     setEditing(null)
-    setTitle('')
-    setCategory('work')
-    setDrawerOpen(true)
+    setAddOpen(true)
   }
   function openEdit(t: Task) {
     setEditing(t)
-    setTitle(t.title)
-    setCategory(t.category)
-    setDrawerOpen(true)
+    setAddOpen(true)
   }
-  function closeDrawer() { setDrawerOpen(false) }
 
-  async function saveTask() {
-    const trimmed = title.trim()
-    if (!trimmed) return
-    if (editing) {
-      const res = await fetch(`/api/tasks/${editing.id}`, {
-        method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: trimmed, category })
-      })
-      if (!res.ok) {
-        showToast('Failed to update task', 'error')
-        return
-      }
-      showToast('Task updated successfully', 'success')
-    } else {
-      const res = await fetch('/api/tasks', {
-        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: trimmed, category, done: false })
-      })
-      if (!res.ok) {
-        showToast('Failed to add task', 'error')
-        return
-      }
-      showToast('Task added successfully', 'success')
-    }
-    closeDrawer()
-    await loadTasks()
-  }
+  // Add/edit handled by AddTaskDialog; table actions still use API for mark/delete
 
   async function toggleDone(id: string, done: boolean) {
     const res = await fetch(`/api/tasks/${id}`, {
@@ -244,7 +242,7 @@ export default function TasksPage() {
     }
   }
 
-  const totalPages = Math.max(1, Math.ceil(total / limit))
+  // Removed legacy totalPages calculation that referenced old `limit` state
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
@@ -255,10 +253,9 @@ export default function TasksPage() {
           <p className="text-sm text-gray-600">Manage tasks with filters, pagination, and editing</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={openAdd}
-            className="rounded bg-indigo-600 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
-          >Add Task</button>
+          <Button variant="primary" size="sm" onClick={openAdd}>
+            <Plus className="mr-2 h-4 w-4" /> Add Task
+          </Button>
         </div>
       </div>
 
@@ -287,113 +284,33 @@ export default function TasksPage() {
         })()}
       </div>
 
-      <div className="overflow-hidden rounded-lg border bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-700">
-              {table.getHeaderGroups().map(hg => (
-                <tr key={hg.id}>
-                  {hg.headers.map(h => (
-                    <th key={h.id} className="px-4 py-2 text-left font-semibold">
-                      {flexRender(h.column.columnDef.header, h.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td className="px-4 py-6" colSpan={columns.length}>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Skeleton className="h-4 w-1/3" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-6 w-28" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Skeleton className="h-4 w-1/3" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-6 w-28" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Skeleton className="h-4 w-1/3" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-6 w-28" />
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : tasks.length === 0 ? (
-                <tr><td className="px-4 py-6" colSpan={columns.length}>No tasks found.</td></tr>
-              ) : (
-                table.getRowModel().rows.map(row => (
-                  <tr key={row.id} className="border-t">
-                    {row.getVisibleCells().map(cell => (
-                      <td key={cell.id} className="px-4 py-2">
-                        {cell.column.columnDef.cell
-                          ? flexRender(cell.column.columnDef.cell, cell.getContext())
-                          : String(cell.getValue() ?? '')}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-center justify-between border-t bg-gray-50 px-4 py-2">
-          <div className="text-xs text-gray-600">Page {page} of {totalPages} · Total {total}</div>
-          <div className="flex items-center gap-2">
-            <button disabled={page<=1} onClick={() => setPage(p => Math.max(1, p-1))} className="rounded border px-2 py-1 text-xs disabled:opacity-50">Prev</button>
-            <button disabled={page>=totalPages} onClick={() => setPage(p => Math.min(totalPages, p+1))} className="rounded border px-2 py-1 text-xs disabled:opacity-50">Next</button>
-            <Select indicatorPosition="left" value={String(limit)} onValueChange={(v) => setLimit(Number(v))}>
-              <SelectTrigger size="xs" className="w-auto">
-                <SelectValue placeholder="Limit" />
-              </SelectTrigger>
-              <SelectContent className="z-[60]">
-                {[10, 20, 50].map((n) => (
-                  <SelectItem key={n} value={String(n)}>{`${n}/page`}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+      <div className="overflow-x-auto max-w-full">
+        <DataGrid
+          table={table}
+          recordCount={total}
+          isLoading={loading}
+          emptyMessage="No tasks found"
+          tableLayout={{ headerBackground: true, headerBorder: true, headerSticky: true, rowBorder: true, cellBorder: true }}
+        >
+          <DataGridContainer>
+            <DataGridTable />
+          </DataGridContainer>
+          <DataGridPagination />
+        </DataGrid>
       </div>
 
-      {drawerOpen && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/30" onClick={closeDrawer} />
-          <div className="absolute right-0 top-0 h-full w-[360px] bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <h2 className="text-sm font-semibold">{editing ? 'Edit Task' : 'Add Task'}</h2>
-              <button onClick={closeDrawer} className="rounded border px-2 py-1 text-xs">Close</button>
-            </div>
-            <div className="space-y-3 p-4">
-              <label className="block text-xs font-medium text-gray-700">Title</label>
-              <Input value={title} onValueChange={setTitle} placeholder="Task title" className="w-full rounded border px-3 py-2 text-sm" />
-              <label className="block text-xs font-medium text-gray-700">Category</label>
-              <Select indicatorPosition="left" value={category} onValueChange={(v) => setCategory(v as Category)}>
-                <SelectTrigger size="md" className="w-full">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="z-[60]">
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <button onClick={saveTask} className="w-full rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddTaskDialog
+        open={addOpen}
+        onOpenChange={(o) => setAddOpen(o)}
+        categories={categories.length ? categories : CATEGORIES.map(c => c.key)}
+        canAddCategory={canAddCategory}
+        task={editing ? { id: editing.id, title: editing.title, category: editing.category } : undefined}
+        onSuccess={async () => {
+          // Ensure newest appears first by returning to page 1
+          setPagination(p => ({ ...p, pageIndex: 0 }))
+          await loadTasks()
+        }}
+      />
     </div>
   )
 }

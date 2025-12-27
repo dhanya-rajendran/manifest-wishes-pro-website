@@ -2,12 +2,38 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import ThemeToggle from './theme-toggle'
+import { X } from 'lucide-react'
+import {
+  AccordionMenu,
+  AccordionMenuGroup,
+  AccordionMenuItem,
+  AccordionMenuLabel,
+  AccordionMenuSeparator,
+  AccordionMenuSub,
+  AccordionMenuSubContent,
+  AccordionMenuSubTrigger,
+  AccordionMenuIndicator,
+} from '@/components/ui/accordion-menu'
+import {
+  ChevronRightIcon,
+  ClipboardIcon,
+  HomeIcon,
+  FileTextIcon,
+  LayersIcon,
+  HeartIcon,
+  EyeOpenIcon,
+  MagicWandIcon,
+  ClockIcon,
+  CalendarIcon,
+} from '@radix-ui/react-icons'
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<{ id: string | number; email: string; name: string } | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     // Fetch current user from server using cookie (no localStorage)
@@ -32,8 +58,8 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.svg" alt="Logo" width={28} height={28} />
-              <span className="text-base font-semibold">Manifest Wishes Pro</span>
+              <Image src="/logo.svg" alt="Logo" width={100} height={80} />
+              {/* <span className="text-base font-semibold">Manifest Wishes Pro</span> */}
             </Link>
           </div>
           <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
@@ -52,6 +78,9 @@ export default function Navbar() {
                   <Image src="/chrome-icon.svg" alt="Chrome" width={18} height={18} />
                   <span className="hidden sm:inline">Add Extension</span>
                 </a>
+                <div className="flex items-center">
+                  <ThemeToggle />
+                </div>
                 <button
                   onClick={handleLogout}
                   className="rounded-lg bg-gray-800 px-3 py-2 text-white shadow-sm hover:bg-gray-900"
@@ -72,6 +101,9 @@ export default function Navbar() {
                   <Image src="/chrome-icon.svg" alt="Chrome" width={18} height={18} />
                   <span className="hidden sm:inline">Add Extension</span>
                 </a>
+                <div className="flex items-center">
+                  <ThemeToggle />
+                </div>
                 <Link href="/login" className="rounded-lg bg-gradient-to-tr from-purple-600 to-fuchsia-600 px-3 py-2 text-white shadow-sm hover:from-purple-700 hover:to-fuchsia-700">Login</Link>
               </>
             )}
@@ -86,28 +118,123 @@ export default function Navbar() {
         </div>
       </div>
       {open && (
-        <div className="md:hidden border-t bg-white/90">
-          <div className="mx-auto max-w-6xl px-4 py-3 flex flex-col gap-2">
-            {user ? (
-              <>
-                <Link href="/dashboard/tasks" className="py-2">Tasks</Link>
-                <Link href="/dashboard/gratitude" className="py-2">Gratitude</Link>
-                <Link href="/dashboard/vision" className="py-2">Vision Board</Link>
-                <Link href="/dashboard/method-369" className="py-2">369 Method</Link>
-                <Link href="/dashboard/focus-timer" className="py-2">Focus Timer</Link>
-                <a href="#" className="py-2">Add Extension</a>
-                <button onClick={handleLogout} className="py-2 text-left">Logout</button>
-              </>
-            ) : (
-              <>
-                <Link href="/pricing" className="py-2">Pricing</Link>
-                <Link href="/contact" className="py-2">Contact</Link>
-                <a href="#" className="py-2">Add Extension</a>
-                <Link href="/login" className="py-2">Login</Link>
-              </>
-            )}
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] md:hidden"
+            onClick={() => setOpen(false)}
+          />
+          {/* Drawer Panel */}
+          <div className="fixed right-0 top-0 z-[70] h-full w-80 max-w-[85vw] bg-white shadow-xl md:hidden">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Image src="/logo.svg" alt="Logo" width={22} height={22} />
+                <span className="text-sm font-semibold">Menu</span>
+              </div>
+              <button
+                aria-label="Close menu"
+                className="rounded-md p-2 hover:bg-gray-100"
+                onClick={() => setOpen(false)}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="px-4 py-3">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs text-gray-600">Theme</span>
+                <ThemeToggle />
+              </div>
+              {user ? (
+                <div className="overflow-hidden border border-border rounded-md p-2">
+                  <AccordionMenu
+                    type="multiple"
+                    defaultValue={["/dashboard/tasks"]}
+                    selectedValue={pathname || ''}
+                    matchPath={(path: string) => {
+                      const groupPrefixes = ['/dashboard/tasks']
+                      if (groupPrefixes.includes(path)) {
+                        return (pathname || '').startsWith(path)
+                      }
+                      return path === pathname
+                    }}
+                    onItemClick={(value) => {
+                      if (value && value.startsWith('/')) {
+                        router.push(value)
+                        setOpen(false)
+                      }
+                    }}
+                    classNames={{ separator: '-mx-2 mb-2.5' }}
+                  >
+                    <AccordionMenuLabel>
+                      <span className="text-sm font-semibold">Menu Items</span>
+                    </AccordionMenuLabel>
+                    <AccordionMenuSeparator />
+
+                    <AccordionMenuGroup>
+                      <AccordionMenuItem value="/dashboard">
+                        <HomeIcon />
+                        <span>Dashboard</span>
+                      </AccordionMenuItem>
+
+                      <AccordionMenuSub value="/dashboard/tasks">
+                        <AccordionMenuSubTrigger value="/dashboard/tasks">
+                          <ClipboardIcon />
+                          <span>Tasks</span>
+                          <AccordionMenuIndicator />
+                        </AccordionMenuSubTrigger>
+                        <AccordionMenuSubContent type="single" collapsible parentValue="/dashboard/tasks">
+                          <AccordionMenuGroup>
+                            <AccordionMenuItem value="/dashboard/tasks">
+                              <FileTextIcon />
+                              <span>Table View</span>
+                            </AccordionMenuItem>
+                            <AccordionMenuItem value="/dashboard/tasks/kanban">
+                              <LayersIcon />
+                              <span>Kanban View</span>
+                            </AccordionMenuItem>
+                            <AccordionMenuItem value="/dashboard/tasks/calendar">
+                              <CalendarIcon />
+                              <span>Calendar View</span>
+                            </AccordionMenuItem>
+                          </AccordionMenuGroup>
+                        </AccordionMenuSubContent>
+                      </AccordionMenuSub>
+
+                      <AccordionMenuItem value="/dashboard/gratitude">
+                        <HeartIcon />
+                        <span>Gratitude</span>
+                      </AccordionMenuItem>
+                      <AccordionMenuItem value="/dashboard/vision">
+                        <EyeOpenIcon />
+                        <span>Vision Board</span>
+                      </AccordionMenuItem>
+                      <AccordionMenuItem value="/dashboard/method-369">
+                        <MagicWandIcon />
+                        <span>369 Method</span>
+                      </AccordionMenuItem>
+                      <AccordionMenuItem value="/dashboard/focus-timer">
+                        <ClockIcon />
+                        <span>Focus Timer</span>
+                      </AccordionMenuItem>
+                    </AccordionMenuGroup>
+                  </AccordionMenu>
+
+                  <div className="mt-3 grid grid-cols-1 gap-1">
+                    <a href="#" className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Add Extension</a>
+                    <button onClick={handleLogout} className="rounded-md px-3 py-2 text-left text-sm hover:bg-gray-100">Logout</button>
+                  </div>
+                </div>
+              ) : (
+                <nav className="grid grid-cols-1 gap-1">
+                  <Link href="/pricing" onClick={() => setOpen(false)} className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Pricing</Link>
+                  <Link href="/contact" onClick={() => setOpen(false)} className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Contact</Link>
+                  <a href="#" className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Add Extension</a>
+                  <Link href="/login" onClick={() => setOpen(false)} className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Login</Link>
+                </nav>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </header>
   )

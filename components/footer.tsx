@@ -6,7 +6,7 @@ export default function Footer() {
   const year = new Date().getFullYear()
   return (
     <footer className="mt-24">
-      <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-fuchsia-600" />
+      <div className="h-1 w-full bg-gradient-to-r from-primary via-primary/70 to-primary/60" />
       <div className="bg-white">
         <div className="mx-auto max-w-6xl px-4 py-12">
           <div className="grid gap-10 md:grid-cols-4">
