@@ -11,8 +11,12 @@ model User {
   email     String   @unique
   name      String
   password  String
+  phone     String?  @unique
+  gender    String?
   // 'free' or 'pro' plan for feature gating
   plan      String   @default("free")
+  emailVerified Boolean @default(false)
+  phoneVerified Boolean @default(false)
   createdAt DateTime @default(now())
   gratitudeEntries GratitudeEntry[]
   tasks     Task[]
@@ -22,6 +26,9 @@ model User {
   timerPauses   TimerPause[]
   timerStops    TimerStop[]
   categories     UserCategory[]
+  subscriptions  UserSubscription[]
+  emailTokens    EmailVerificationToken[]
+  phoneCodes     PhoneVerificationCode[]
 }
 
 model ContactMessage {
@@ -157,4 +164,60 @@ model UserCategory {
 
   @@index([userId])
   @@unique([userId, name])
+}
+
+model SubscriptionPlan {
+  id                  Int      @id @default(autoincrement())
+  key                 String   @unique // e.g. 'free', 'silver', 'ultimate'
+  name                String
+  priceMonthlyCents   Int      @default(0)
+  priceYearlyCents    Int      @default(0)
+  yearlyDiscountPercent Int?
+  limits              Json?
+  permissions         Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  subscriptions       UserSubscription[]
+}
+
+model UserSubscription {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  planId     Int
+  status     String   @default("active") // 'active', 'canceled', 'expired'
+  startedAt  DateTime @default(now())
+  expiresAt  DateTime?
+  cancelAt   DateTime?
+
+  user       User              @relation(fields: [userId], references: [id])
+  plan       SubscriptionPlan  @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([planId])
+}
+
+model EmailVerificationToken {
+  id         String   @id
+  userId     Int
+  token      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model PhoneVerificationCode {
+  id         String   @id
+  userId     Int
+  code       String
+  expiresAt  DateTime
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

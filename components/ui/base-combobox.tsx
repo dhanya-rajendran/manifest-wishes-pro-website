@@ -188,9 +188,9 @@ function ComboboxItem({ className, ...props }: React.ComponentProps<typeof Combo
       data-slot="combobox-item"
       className={cn(
         'relative cursor-default flex items-center',
-        'text-foreground relative select-none items-center gap-2 rounded-md ps-7 pe-2 py-1.5 text-sm outline-hidden transition-colors data-disabled:pointer-events-none data-disabled:opacity-50',
+        'text-foreground relative select-none items-center gap-2 rounded-md ps-7 pe-2 py-1.5 text-sm outline-hidden transition-colors hover:bg-gray-100 focus:bg-gray-100 data-disabled:pointer-events-none data-disabled:opacity-50',
         '[&_svg]:pointer-events-none [&_svg:not([role=img]):not([class*=text-])]:opacity-60 [&_svg:not([class*=size-])]:size-4 [&_svg]:shrink-0',
-        'data-[highlighted]:relative data-[highlighted]:z-0 data-[highlighted]:text-foreground data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-sm data-[highlighted]:before:bg-accent',
+        'data-[highlighted]:relative data-[highlighted]:z-0 data-[highlighted]:text-foreground data-[highlighted]:before:absolute data-[highlighted]:before:inset-x-1 data-[highlighted]:before:inset-y-0 data-[highlighted]:before:z-[-1] data-[highlighted]:before:rounded-sm data-[highlighted]:before:bg-gray-100',
         className,
       )}
       {...props}

@@ -58,7 +58,7 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.svg" alt="Logo" width={100} height={80} />
+              <Image src="/logo.svg" alt="Logo" width={80} height={60} />
               {/* <span className="text-base font-semibold">Manifest Wishes Pro</span> */}
             </Link>
           </div>
