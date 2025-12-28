@@ -225,6 +225,45 @@ body { @apply font-sans bg-background text-foreground; }
   --chart-5: 250 5% 42%;
 }
 
+/* Purple Theme (light) */
+.theme-purple {
+  /* Use Tailwind default purple palette accents */
+  --primary: 270 91% 65%; /* purple-500 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 270 30% 95%; /* soft purple tint */
+  --secondary-foreground: 270 30% 20%;
+  --accent: 270 91% 55%; /* purple-600 */
+  --accent-foreground: 0 0% 100%;
+  --muted: 270 20% 96%;
+  --muted-foreground: 270 10% 45%;
+  --sidebar-primary: 270 91% 55%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --chart-1: 270 91% 65%;
+  --chart-2: 240 80% 60%;
+  --chart-3: 300 80% 60%;
+  --chart-4: 330 80% 60%;
+  --chart-5: 60 80% 60%;
+}
+
+/* Purple Theme (dark) */
+.dark.theme-purple {
+  --primary: 270 91% 60%; /* slightly darker */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 270 25% 30%; /* muted purple */
+  --secondary-foreground: 0 0% 95%;
+  --accent: 270 91% 55%;
+  --accent-foreground: 0 0% 100%;
+  --muted: 270 10% 20%;
+  --muted-foreground: 0 0% 72%;
+  --sidebar-primary: 270 91% 55%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --chart-1: 270 70% 60%;
+  --chart-2: 240 60% 55%;
+  --chart-3: 300 60% 65%;
+  --chart-4: 330 60% 70%;
+  --chart-5: 60 60% 75%;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

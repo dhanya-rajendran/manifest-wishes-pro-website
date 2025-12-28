@@ -5,6 +5,8 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { useRouter } from 'next/navigation'
 import Navbar from '../../../components/navbar'
 import { Button } from '../../../components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Mail, Phone as PhoneIcon } from 'lucide-react'
 import { GridBackground } from '@/components/ui/grid-background'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { Card, CardContent } from '../../../components/ui/card'
@@ -117,75 +119,72 @@ export default function LoginPage() {
 
               <Form {...form}>
                 <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-                  {/* Login method toggle */}
-                  <div className="flex rounded-md border bg-muted p-1">
-                    <Button
-                      type="button"
-                      variant={method === 'email' ? 'primary' : 'ghost'}
-                      className="flex-1"
-                      onClick={() => setMethod('email')}
-                    >
-                      Email
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={method === 'phone' ? 'primary' : 'ghost'}
-                      className="flex-1"
-                      onClick={() => setMethod('phone')}
-                    >
-                      Phone
-                    </Button>
-                  </div>
-
-                  {method === 'email' ? (
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    rules={{
-                      validate: (v) => (method === 'email' ? (!!v || 'Email is required') : true),
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm">Email</FormLabel>
-                        <FormControl>
-                          <input
-                            type="email"
-                            className="mt-1 w-full rounded-lg border bg-background/50 px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                            placeholder="you@example.com"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  ) : (
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      rules={{
-                        validate: (v) =>
-                          method === 'phone'
-                            ? (v && isValidPhoneNumber(v)) || 'Enter a valid phone number'
-                            : true,
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Phone number</FormLabel>
-                          <FormControl>
-                            <PhoneInput
-                              value={field.value}
-                              onChange={(val) => field.onChange(val || '')}
-                              placeholder="Enter phone number"
-                              defaultCountry="US"
-                              aria-invalid={!!form.formState.errors.phone}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
+                  {/* Login method tabs styled like Gratitude page, with Lucide icons */}
+                  <Tabs
+                    defaultValue="email"
+                    value={method}
+                    onValueChange={(v) => setMethod((v as 'email' | 'phone'))}
+                    className="text-sm text-muted-foreground"
+                  >
+                    <TabsList variant="line" className="w-full gap-0">
+                      <TabsTrigger value="email" className="flex-1 justify-center">
+                        <Mail className="mr-2 h-4 w-4" /> Email
+                      </TabsTrigger>
+                      <TabsTrigger value="phone" className="flex-1 justify-center">
+                        <PhoneIcon className="mr-2 h-4 w-4" /> Phone
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="email">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        rules={{
+                          validate: (v) => (method === 'email' ? (!!v || 'Email is required') : true),
+                        }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm">Email</FormLabel>
+                            <FormControl>
+                              <input
+                                type="email"
+                                className="mt-1 w-full rounded-lg border bg-background/50 px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                placeholder="you@example.com"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TabsContent>
+                    <TabsContent value="phone">
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        rules={{
+                          validate: (v) =>
+                            method === 'phone'
+                              ? (v && isValidPhoneNumber(v)) || 'Enter a valid phone number'
+                              : true,
+                        }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm">Phone number</FormLabel>
+                            <FormControl>
+                              <PhoneInput
+                                value={field.value}
+                                onChange={(val) => field.onChange(val || '')}
+                                placeholder="Enter phone number"
+                                defaultCountry="US"
+                                aria-invalid={!!form.formState.errors.phone}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TabsContent>
+                  </Tabs>
                   <FormField
                     control={form.control}
                     name="password"

@@ -2,25 +2,26 @@
 import { useEffect, useState } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
-type ThemeChoice = 'fancy' | 'solid'
+type ThemeChoice = 'fancy' | 'solid' | 'purple'
 
 function applyThemeClass(choice: ThemeChoice) {
   const root = document.documentElement
   const map = {
     fancy: 'theme-fancy',
     solid: 'theme-solid',
+    purple: 'theme-purple',
   } as const
   const themeClass = map[choice]
-  root.classList.remove('theme-fancy', 'theme-solid')
+  root.classList.remove('theme-fancy', 'theme-solid', 'theme-purple')
   root.classList.add(themeClass)
 }
 
 export default function ThemeToggle() {
-  const [value, setValue] = useState<ThemeChoice>('fancy')
+  const [value, setValue] = useState<ThemeChoice>('purple')
 
   useEffect(() => {
     try {
-      const saved = (localStorage.getItem('theme') as ThemeChoice | null) || 'fancy'
+      const saved = (localStorage.getItem('theme') as ThemeChoice | null) || 'purple'
       setValue(saved)
       applyThemeClass(saved)
     } catch {}
@@ -48,6 +49,9 @@ export default function ThemeToggle() {
       </ToggleGroupItem>
       <ToggleGroupItem value="solid" aria-label="Solid theme">
         Solid
+      </ToggleGroupItem>
+      <ToggleGroupItem value="purple" aria-label="Purple theme">
+        Purple
       </ToggleGroupItem>
     </ToggleGroup>
   )
