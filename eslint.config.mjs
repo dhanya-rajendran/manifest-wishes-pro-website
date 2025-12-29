@@ -1,6 +1,7 @@
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
+import nextPlugin from '@next/eslint-plugin-next'
 
 // ESLint v9 flat config with JS + TypeScript support
 export default [
@@ -9,6 +10,15 @@ export default [
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    // Next.js plugin recommended rules
+    plugins: {
+      '@next/next': nextPlugin
+    },
+    rules: {
+      ...nextPlugin.configs.recommended.rules
+    }
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

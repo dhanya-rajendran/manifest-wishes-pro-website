@@ -70,7 +70,11 @@ export async function GET(request: Request) {
   const createdToday = createdByDay.find((d) => d.date === todayKey)?.created ?? 0
 
   // Per-category created by day series for last N days
-  const categories = Array.from(new Set(byCategory.map((c: { category: string }) => c.category))).sort()
+  // Ensure TypeScript infers a string[] for categories so it can be used
+  // as an index type for the per-day category map initialization.
+  const categories: string[] = Array.from(
+    new Set(byCategory.map((c: { category: string }) => c.category))
+  ).sort()
   const byDayByCategoryMap = new Map<string, Record<string, number>>()
   for (let i = 0; i < days; i++) {
     const d = new Date(since)
