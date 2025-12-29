@@ -208,7 +208,7 @@ export default function LoginPage() {
                     <a className="text-sm underline underline-offset-4" href="/signup">Create account</a>
                   </div>
                   <p className="text-xs text-muted-foreground">Note: Email must be verified to access the dashboard.</p>
-                  <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  <Button type="submit" variant="mono" className="w-full" disabled={form.formState.isSubmitting}>
                     {form.formState.isSubmitting ? 'Loading…' : 'Sign in'}
                   </Button>
                 </form>

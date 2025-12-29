@@ -29,7 +29,7 @@ function getUserId(request: Request): number | null {
   return Number(payload.uid)
 }
 
-export async function PATCH(request: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: Request, context: any) {
   const userId = getUserId(request)
   if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
 
@@ -39,7 +39,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   if (!body) return NextResponse.json({ ok: false, error: 'Invalid body' }, { status: 400 })
   if (Object.keys(body).length === 0) return NextResponse.json({ ok: false, error: 'No fields to update' }, { status: 400 })
 
-  const { id } = await ctx.params
+  const { id } = (context?.params ?? {}) as { id: string }
   const existing = await prisma.task.findUnique({ where: { id } })
   if (!existing || existing.deletedAt) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
   if (existing.userId !== userId) return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 })
@@ -48,11 +48,11 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   return NextResponse.json({ ok: true, task: updated })
 }
 
-export async function DELETE(request: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, context: any) {
   const userId = getUserId(request)
   if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await ctx.params
+  const { id } = (context?.params ?? {}) as { id: string }
   const existing = await prisma.task.findUnique({ where: { id } })
   if (!existing || existing.deletedAt || existing.userId !== userId) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
   await prisma.task.update({ where: { id }, data: { deletedAt: new Date() } })

@@ -394,7 +394,7 @@ function formatRangeLabel(from?: Date, to?: Date): string {
   if (from) return format(from, 'LLL dd, y')
   return 'Pick a date range'
 }
-function DateRangeField({
+export function DateRangeField({
   className,
   icon,
   value,

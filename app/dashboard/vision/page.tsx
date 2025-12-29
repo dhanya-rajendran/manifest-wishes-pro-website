@@ -10,6 +10,9 @@ export default function VisionPage() {
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   async function load() {
     const res = await fetch("/api/vision", { credentials: "include" });
@@ -37,6 +40,31 @@ export default function VisionPage() {
   async function save() {
     const trimmed = title.trim();
     if (!trimmed) return;
+    setError("");
+
+    // If a file is selected, validate and upload first
+    if (imageFile) {
+      const allowed = ["image/png", "image/jpeg", "image/webp"];
+      if (!allowed.includes(imageFile.type)) {
+        setError("Unsupported image type. Use PNG, JPEG, or WEBP.");
+        return;
+      }
+      const max = 500 * 1024; // 500KB
+      if (imageFile.size > max) {
+        setError("File too large. Max 500KB.");
+        return;
+      }
+      const fd = new FormData();
+      fd.append("file", imageFile);
+      const up = await fetch("/api/upload/vision", { method: "POST", credentials: "include", body: fd });
+      if (!up.ok) {
+        const msg = await up.json().catch(() => ({}));
+        setError(msg?.error || "Upload failed");
+        return;
+      }
+      const data = await up.json();
+      setImageUrl(data.url);
+    }
     const res = await fetch("/api/vision", {
       method: "POST",
       credentials: "include",
@@ -48,6 +76,9 @@ export default function VisionPage() {
       setTitle("");
       setImageUrl("");
       setDescription("");
+      setImageFile(null);
+      setPreview("");
+      setError("");
       await load();
     }
   }
@@ -60,7 +91,7 @@ export default function VisionPage() {
     <div className="space-y-6">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-sm text-gray-600">Design your interactive vision board</p>
-        <button onClick={() => setDrawer(true)} className="rounded bg-indigo-600 px-3 py-2 text-xs font-medium text-white">Add Gallery Item</button>
+        <button onClick={() => setDrawer(true)} className="rounded bg-indigo-600 px-3 py-2 text-xs font-medium text-white">Add Vision Item</button>
       </div>
 
       <VisionBoardInteractive />
@@ -96,14 +127,31 @@ export default function VisionPage() {
           <div className="absolute inset-0 bg-black/30" onClick={() => setDrawer(false)} />
           <div className="absolute right-0 top-0 h-full w-[360px] bg-white shadow-xl">
             <div className="flex items-center justify-between border-b px-4 py-3">
-              <h2 className="text-sm font-semibold">Add Gallery Item</h2>
+              <h2 className="text-sm font-semibold">Create Vision Item</h2>
               <button onClick={() => setDrawer(false)} className="rounded border px-2 py-1 text-xs">Close</button>
             </div>
             <div className="space-y-3 p-4">
               <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded border px-3 py-2 text-sm" placeholder="Title" />
-              <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full rounded border px-3 py-2 text-sm" placeholder="Image URL (optional)" />
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setImageFile(f);
+                    setError("");
+                    if (f) setPreview(URL.createObjectURL(f)); else setPreview("");
+                  }}
+                  className="w-full rounded border px-3 py-2 text-sm"
+                />
+                {preview && (
+                  <img src={preview} alt="Preview" className="h-32 w-full rounded object-cover" />
+                )}
+                <p className="text-xs text-gray-600">PNG/JPEG/WEBP, max 500KB</p>
+                {error && <p className="text-xs text-red-600">{error}</p>}
+              </div>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded border px-3 py-2 text-sm" placeholder="Description (optional)" />
-              <button onClick={save} className="w-full rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white">Save</button>
+              <button onClick={save} className="w-full rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white">Upload & Save</button>
             </div>
           </div>
         </div>

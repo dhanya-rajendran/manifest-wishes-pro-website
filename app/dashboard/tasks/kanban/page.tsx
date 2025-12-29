@@ -3,10 +3,11 @@ import TasksKanban from '@/components/tasks-kanban'
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from '@/components/ui/filters'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import * as React from 'react'
+import { Suspense } from 'react'
 
 export const dynamic = 'force-dynamic'
 
-export default function Page() {
+function KanbanContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -81,5 +82,13 @@ export default function Page() {
       </div>
       <TasksKanban filters={filters} />
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <KanbanContent />
+    </Suspense>
   )
 }

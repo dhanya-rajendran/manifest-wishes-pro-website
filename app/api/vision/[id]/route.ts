@@ -12,9 +12,10 @@ function getUserId(request: Request): number | null {
   return Number(payload.uid)
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, context: any) {
   const userId = getUserId(request)
   if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+  const params = (context?.params ?? {}) as { id: string }
   const existing = await prisma.visionItem.findUnique({ where: { id: params.id } })
   if (!existing || existing.userId !== userId) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
   let json: unknown
@@ -24,9 +25,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   return NextResponse.json({ ok: true, item: updated })
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, context: any) {
   const userId = getUserId(request)
   if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+  const params = (context?.params ?? {}) as { id: string }
   const existing = await prisma.visionItem.findUnique({ where: { id: params.id } })
   if (!existing || existing.userId !== userId) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
   await prisma.visionItem.delete({ where: { id: params.id } })

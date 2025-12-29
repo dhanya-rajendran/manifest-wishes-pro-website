@@ -1,5 +1,6 @@
 "use client"
-import { useEffect, useMemo, useState } from 'react'
+export const dynamic = 'force-dynamic'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import type { ComponentType, SVGProps } from 'react'
 import { format } from 'date-fns'
@@ -46,7 +47,7 @@ function getIconForCategory(name?: string) {
 
 function capitalize(s: string) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '' }
 
-export default function TasksPage() {
+function TasksContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -312,6 +313,14 @@ export default function TasksPage() {
         }}
       />
     </div>
+  )
+}
+
+export default function TasksPage() {
+  return (
+    <Suspense>
+      <TasksContent />
+    </Suspense>
   )
 }
 

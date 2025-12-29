@@ -6,7 +6,7 @@ export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
     log: ['error', 'warn'],
-    // Pass connection URL via constructor to align with newer Prisma configuration
+    // Provide connection via datasources for current Prisma setup
     datasources: { db: { url: process.env.DATABASE_URL } },
   })
 

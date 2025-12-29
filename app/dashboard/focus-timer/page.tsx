@@ -1,5 +1,6 @@
 "use client"
-import { useEffect, useMemo, useRef, useState } from 'react'
+export const dynamic = 'force-dynamic'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/base-button'
 import { Input } from '@/components/ui/base-input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,7 +34,7 @@ type FocusSession = {
 }
 interface ApiResponse { ok: boolean; sessions: FocusSession[]; total: number }
 
-export default function FocusTimerPage() {
+function FocusTimerContent() {
   const { running, paused, mode, durationMin, remaining, note, restoring, setNote, setDurationMin, setMode, start, pause, resume, stopAndSave } = useFocusTimer()
   const [toast, setToast] = useState<{ message: string; type?: 'success' | 'error' } | null>(null)
   // Recent Sessions filters and table state
@@ -446,5 +447,13 @@ export default function FocusTimerPage() {
       )}
       <audio ref={audioRef} src="/affirmation.mp3" preload="auto" />
     </div>
+  )
+}
+
+export default function FocusTimerPage() {
+  return (
+    <Suspense>
+      <FocusTimerContent />
+    </Suspense>
   )
 }

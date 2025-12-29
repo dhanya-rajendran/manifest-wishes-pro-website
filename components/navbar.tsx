@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import ThemeToggle from './theme-toggle'
+import ChromeBanner from './chrome-banner'
 import { X } from 'lucide-react'
 import {
   AccordionMenu,
@@ -53,7 +54,9 @@ export default function Navbar() {
     router.replace('/login')
   }
   return (
-    <header className="sticky top-0 z-50 border-b bg-white/70 backdrop-blur shadow-sm">
+    <>
+      <ChromeBanner />
+      <header className="sticky top-0 z-50 border-b bg-white/70 backdrop-blur shadow-sm">
       <div className="mx-auto max-w-6xl px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
@@ -70,14 +73,7 @@ export default function Navbar() {
                 <Link href="/dashboard/vision" className="text-gray-700 hover:text-gray-900">Vision Board</Link>
                 <Link href="/dashboard/method-369" className="text-gray-700 hover:text-gray-900">369 Method</Link>
                 <Link href="/dashboard/focus-timer" className="text-gray-700 hover:text-gray-900">Focus Timer</Link>
-                <a
-                  href="#"
-                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-gray-800 hover:bg-gray-100"
-                  title="Add Chrome Extension"
-                >
-                  <Image src="/chrome-icon.svg" alt="Chrome" width={18} height={18} />
-                  <span className="hidden sm:inline">Add Extension</span>
-                </a>
+                {/* Add Extension moved to top banner */}
                 <div className="flex items-center">
                   <ThemeToggle />
                 </div>
@@ -93,14 +89,7 @@ export default function Navbar() {
               <>
                 <Link href="/pricing" className="text-gray-700 hover:text-gray-900">Pricing</Link>
                 <Link href="/contact" className="text-gray-700 hover:text-gray-900">Contact</Link>
-                <a
-                  href="#"
-                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-gray-800 hover:bg-gray-100"
-                  title="Add Chrome Extension"
-                >
-                  <Image src="/chrome-icon.svg" alt="Chrome" width={18} height={18} />
-                  <span className="hidden sm:inline">Add Extension</span>
-                </a>
+                {/* Add Extension moved to top banner */}
                 <div className="flex items-center">
                   <ThemeToggle />
                 </div>
@@ -220,7 +209,7 @@ export default function Navbar() {
                   </AccordionMenu>
 
                   <div className="mt-3 grid grid-cols-1 gap-1">
-                    <a href="#" className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Add Extension</a>
+                    {/* Add Extension moved to top banner */}
                     <button onClick={handleLogout} className="rounded-md px-3 py-2 text-left text-sm hover:bg-gray-100">Logout</button>
                   </div>
                 </div>
@@ -228,7 +217,7 @@ export default function Navbar() {
                 <nav className="grid grid-cols-1 gap-1">
                   <Link href="/pricing" onClick={() => setOpen(false)} className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Pricing</Link>
                   <Link href="/contact" onClick={() => setOpen(false)} className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Contact</Link>
-                  <a href="#" className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Add Extension</a>
+                  {/* Add Extension moved to top banner */}
                   <Link href="/login" onClick={() => setOpen(false)} className="rounded-md px-3 py-2 text-sm hover:bg-gray-100">Login</Link>
                 </nav>
               )}
@@ -236,6 +225,7 @@ export default function Navbar() {
           </div>
         </>
       )}
-    </header>
+      </header>
+    </>
   )
 }
