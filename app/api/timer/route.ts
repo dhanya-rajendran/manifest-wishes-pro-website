@@ -87,8 +87,8 @@ export async function GET(request: Request) {
   }
   const sessionsWith = sessions.map((s: FocusSessionRow) => ({
     ...s,
-    pauses: (pauseMap.get(s.id) || []).map((p) => ({ id: p.id, startAt: p.startedAt.toISOString(), endAt: p.endedAt ? p.endedAt.toISOString() : null })),
-    stops: (stopMap.get(s.id) || []).map((st) => ({ id: st.id, stopAt: st.stoppedAt.toISOString() })),
+    pauses: (pauseMap.get(s.id) || []).map((p: { id: string; sessionId: string; startedAt: Date; endedAt: Date | null }) => ({ id: p.id, startAt: p.startedAt.toISOString(), endAt: p.endedAt ? p.endedAt.toISOString() : null })),
+    stops: (stopMap.get(s.id) || []).map((st: { id: string; sessionId: string; stoppedAt: Date }) => ({ id: st.id, stopAt: st.stoppedAt.toISOString() })),
   }))
   return NextResponse.json({ ok: true, sessions: sessionsWith, page, limit, total })
 }

@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     const key = toDateKey(new Date(t.createdAt))
     createdByDayMap.set(key, (createdByDayMap.get(key) ?? 0) + 1)
   }
-  const createdByDay = Array.from(createdByDayMap.entries()).map(([date, count]) => ({ date, created: count }))
+  const createdByDay = Array.from(createdByDayMap.entries()).map(([date, count]: [string, number]) => ({ date, created: count }))
 
   const todayKey = toDateKey(new Date())
   const createdToday = createdByDay.find((d) => d.date === todayKey)?.created ?? 0
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       byDayByCategoryMap.set(key, row)
     }
   }
-  const createdByDayByCategory = Array.from(byDayByCategoryMap.entries()).map(([date, counts]) => ({ date, ...counts }))
+  const createdByDayByCategory = Array.from(byDayByCategoryMap.entries()).map(([date, counts]: [string, Record<string, number>]) => ({ date, ...counts }))
 
   return NextResponse.json({
     ok: true,
