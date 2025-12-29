@@ -3,3 +3,6 @@
 
 # Run ESLint in CI mode and block commits on warnings and errors
 npm run lint:ci
+
+# Run a full typecheck to catch TS issues before commit
+npm run typecheck
