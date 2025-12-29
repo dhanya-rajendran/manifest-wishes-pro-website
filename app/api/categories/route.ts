@@ -22,8 +22,12 @@ export async function GET(request: Request) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, plan: true } })
   if (!user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
 
-  const custom = await prisma.userCategory.findMany({ where: { userId }, orderBy: { name: 'asc' } })
-  const categories = Array.from(new Set([...DEFAULT_CATEGORIES, ...custom.map(c => c.name)]))
+  const custom: { name: string }[] = await prisma.userCategory.findMany({
+    where: { userId },
+    orderBy: { name: 'asc' },
+    select: { name: true },
+  })
+  const categories = Array.from(new Set([...DEFAULT_CATEGORIES, ...custom.map((c) => c.name)]))
   const canAdd = user.plan === 'pro'
   return NextResponse.json({ ok: true, categories, canAdd })
 }
