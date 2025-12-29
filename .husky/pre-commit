@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Run ESLint in CI mode and block commits on warnings and errors
 npm run lint:ci
 
