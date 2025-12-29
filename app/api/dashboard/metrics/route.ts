@@ -41,7 +41,9 @@ export async function GET(request: Request) {
     where: { userId, deletedAt: null },
     _count: { _all: true },
   })
-  const categoryCounts = Object.fromEntries(byCategory.map((c) => [c.category, c._count._all]))
+  const categoryCounts = Object.fromEntries(
+    byCategory.map((c: { category: string; _count: { _all: number } }) => [c.category, c._count._all])
+  )
 
   // Created by day (last N days), compute in JS for portability across providers
   const since = new Date()
@@ -68,7 +70,7 @@ export async function GET(request: Request) {
   const createdToday = createdByDay.find((d) => d.date === todayKey)?.created ?? 0
 
   // Per-category created by day series for last N days
-  const categories = Array.from(new Set(byCategory.map((c) => c.category))).sort()
+  const categories = Array.from(new Set(byCategory.map((c: { category: string }) => c.category))).sort()
   const byDayByCategoryMap = new Map<string, Record<string, number>>()
   for (let i = 0; i < days; i++) {
     const d = new Date(since)
