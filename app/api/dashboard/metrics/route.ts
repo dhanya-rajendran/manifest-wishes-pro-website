@@ -73,7 +73,7 @@ export async function GET(request: Request) {
   // Ensure TypeScript infers a string[] for categories so it can be used
   // as an index type for the per-day category map initialization.
   const categories: string[] = Array.from(
-    new Set(byCategory.map((c: { category: string }) => c.category))
+    new Set<string>(byCategory.map((c: { category: string }) => c.category))
   ).sort()
   const byDayByCategoryMap = new Map<string, Record<string, number>>()
   for (let i = 0; i < days; i++) {
