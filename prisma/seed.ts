@@ -1,7 +1,12 @@
+import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '../lib/auth'
 
-const prisma = new PrismaClient({ log: ['error', 'warn'] })
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+  // Supply connection URL via constructor to align with current Prisma config
+  datasources: { db: { url: process.env.DATABASE_URL } },
+})
 
 async function main() {
 
