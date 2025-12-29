@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:ci": "NEXT_TELEMETRY_DISABLED=1 CI=true next build",
+    "check:ci": "npm run lint:ci && npm run typecheck && npm run build:ci",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:ci": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",

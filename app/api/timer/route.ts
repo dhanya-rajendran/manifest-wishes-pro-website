@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
-import { Prisma } from '@prisma/client'
+import type { TimerPauseRow, TimerStopRow } from '@/types/timer'
 // Note: relax typing for dynamic filters to avoid TS mismatches with client types
 // Infer the FocusSession row type from Prisma to avoid brittle model imports
 type FocusSessionRow = Awaited<ReturnType<typeof prisma.focusSession.findMany>>[number]
@@ -45,33 +45,20 @@ export async function GET(request: Request) {
   })
   // Attach pause/stop history without relying on include typings
   const ids = sessions.map((s: FocusSessionRow) => s.id)
-  let pauses: Array<{ id: string; sessionId: string; startedAt: Date; endedAt: Date | null }> = []
-  let stops: Array<{ id: string; sessionId: string; stoppedAt: Date }> = []
+  let pauses: TimerPauseRow[] = []
+  let stops: TimerStopRow[] = []
   if (ids.length) {
-    try {
-      const pauseRows = await prisma.$queryRaw<Array<{ id: string; sessionId: string; startedAt: Date; endedAt: Date | null }>>`
-        SELECT id, sessionId, startedAt, endedAt
-        FROM \`TimerPause\`
-        WHERE sessionId IN (${Prisma.join(ids)})
-        ORDER BY startedAt ASC
-      `
-      pauses = pauseRows
-    } catch {
-      // If the table doesn't exist yet, gracefully fall back to no pauses
-      pauses = []
-    }
-    try {
-      const stopRows = await prisma.$queryRaw<Array<{ id: string; sessionId: string; stoppedAt: Date }>>`
-        SELECT id, sessionId, stoppedAt
-        FROM \`TimerStop\`
-        WHERE sessionId IN (${Prisma.join(ids)})
-        ORDER BY stoppedAt ASC
-      `
-      stops = stopRows
-    } catch {
-      // If the table doesn't exist yet, gracefully fall back to no stops
-      stops = []
-    }
+    // Use typed Prisma client queries instead of raw SQL for portability and stricter typing
+    pauses = await prisma.timerPause.findMany({
+      where: { sessionId: { in: ids } },
+      select: { id: true, sessionId: true, startedAt: true, endedAt: true },
+      orderBy: { startedAt: 'asc' },
+    })
+    stops = await prisma.timerStop.findMany({
+      where: { sessionId: { in: ids } },
+      select: { id: true, sessionId: true, stoppedAt: true },
+      orderBy: { stoppedAt: 'asc' },
+    })
   }
   const pauseMap = new Map<string, typeof pauses>()
   const stopMap = new Map<string, typeof stops>()
@@ -87,8 +74,8 @@ export async function GET(request: Request) {
   }
   const sessionsWith = sessions.map((s: FocusSessionRow) => ({
     ...s,
-    pauses: (pauseMap.get(s.id) || []).map((p: { id: string; sessionId: string; startedAt: Date; endedAt: Date | null }) => ({ id: p.id, startAt: p.startedAt.toISOString(), endAt: p.endedAt ? p.endedAt.toISOString() : null })),
-    stops: (stopMap.get(s.id) || []).map((st: { id: string; sessionId: string; stoppedAt: Date }) => ({ id: st.id, stopAt: st.stoppedAt.toISOString() })),
+    pauses: (pauseMap.get(s.id) || []).map((p: TimerPauseRow) => ({ id: p.id, startAt: p.startedAt.toISOString(), endAt: p.endedAt ? p.endedAt.toISOString() : null })),
+    stops: (stopMap.get(s.id) || []).map((st: TimerStopRow) => ({ id: st.id, stopAt: st.stoppedAt.toISOString() })),
   }))
   return NextResponse.json({ ok: true, sessions: sessionsWith, page, limit, total })
 }
