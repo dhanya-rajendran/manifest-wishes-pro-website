@@ -29,9 +29,18 @@ function getUserId(request: Request): number | null {
   return Number(payload.uid)
 }
 
+function getIdFromContext(context: unknown): string | null {
+  if (!context || typeof context !== 'object') return null
+  const c = context as { params?: unknown }
+  const p = c.params
+  if (!p || typeof p !== 'object') return null
+  const id = (p as Record<string, unknown>).id
+  return typeof id === 'string' ? id : null
+}
+
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  context: unknown,
 ) {
   const userId = getUserId(request)
   if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
@@ -42,7 +51,8 @@ export async function PATCH(
   if (!body) return NextResponse.json({ ok: false, error: 'Invalid body' }, { status: 400 })
   if (Object.keys(body).length === 0) return NextResponse.json({ ok: false, error: 'No fields to update' }, { status: 400 })
 
-  const { id } = params
+  const id = getIdFromContext(context)
+  if (!id) return NextResponse.json({ ok: false, error: 'Invalid id' }, { status: 400 })
   const existing = await prisma.task.findUnique({ where: { id } })
   if (!existing || existing.deletedAt) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
   if (existing.userId !== userId) return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 })
@@ -53,12 +63,12 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  context: unknown,
 ) {
   const userId = getUserId(request)
   if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
-
-  const { id } = params
+  const id = getIdFromContext(context)
+  if (!id) return NextResponse.json({ ok: false, error: 'Invalid id' }, { status: 400 })
   const existing = await prisma.task.findUnique({ where: { id } })
   if (!existing || existing.deletedAt || existing.userId !== userId) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
   await prisma.task.update({ where: { id }, data: { deletedAt: new Date() } })

@@ -68,6 +68,111 @@ function TasksContent() {
 
   function truncate20(s: string) { return s.length > 20 ? `${s.slice(0, 20)}…` : s }
 
+  // columns moved below action callbacks
+
+  // table moved below columns
+
+  const loadTasks = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      params.set('page', String(pagination.pageIndex + 1))
+      params.set('limit', String(pagination.pageSize))
+      // Map filters into query params for backend
+      for (const f of filters) {
+        if (f.key === 'title' && f.op === 'contains') {
+          params.set('title', String(f.values[0] ?? ''))
+        } else if (f.key === 'category' && f.op === 'in') {
+          const cats = (f.values ?? []).map(String).join(',')
+          if (cats) params.set('categories', cats)
+        } else if (f.key === 'status' && f.op === 'in') {
+          const statuses = (f.values ?? []).map(String).join(',')
+          if (statuses) params.set('status', statuses)
+        } else if (f.key === 'createdAt' && f.op === 'between') {
+          const from = String(f.values[0] ?? '')
+          const to = String(f.values[1] ?? '')
+          if (from) params.set('createdFrom', from)
+          if (to) params.set('createdTo', to)
+        }
+      }
+      // Keep URL in sync with current filters
+      const qsEncoded = params.toString()
+      const qsPretty = qsEncoded.replace(/%2C/g, ',')
+      router.replace(`${pathname}?${qsPretty}`)
+      // Use encoded query for fetch to ensure compatibility
+      const res = await fetch(`/api/tasks?${qsEncoded}`, { credentials: 'include' })
+      if (!res.ok) throw new Error('Failed to load')
+      const data = await res.json()
+      setTasks(data.tasks ?? [])
+      setTotal(data.total ?? 0)
+    } finally {
+      setLoading(false)
+    }
+  }, [pagination.pageIndex, pagination.pageSize, filters, router, pathname])
+
+  useEffect(() => { loadTasks() }, [pagination.pageIndex, pagination.pageSize, filters, loadTasks])
+
+  async function loadCategories() {
+    try {
+      const res = await fetch('/api/categories', { credentials: 'include' })
+      const data = await res.json().catch(() => null)
+      if (data?.ok) {
+        setCategories(data.categories || [])
+        setCanAddCategory(Boolean(data.canAdd))
+      }
+    } catch { void 0 }
+  }
+
+  useEffect(() => { loadCategories() }, [])
+
+  // Parse URL params into filters and hydrate UI selections
+  useEffect(() => {
+    if (!searchParams) return
+    const next: Filter[] = []
+    const title = searchParams.get('title')
+    const categories = searchParams.get('categories')
+    const status = searchParams.get('status')
+    const createdFrom = searchParams.get('createdFrom')
+    const createdTo = searchParams.get('createdTo')
+    if (title) next.push(createFilter('title', 'contains', [title]))
+    if (categories) next.push(createFilter('category', 'in', categories.split(',').filter(Boolean)))
+    if (status) next.push(createFilter('status', 'in', status.split(',').filter(Boolean)))
+    if (createdFrom || createdTo) next.push(createFilter('createdAt', 'between', [createdFrom ?? '', createdTo ?? '']))
+    setFilters(next)
+  }, [searchParams])
+
+  const openAdd = useCallback(() => {
+    setEditing(null)
+    setAddOpen(true)
+  }, [])
+  // moved openEdit below
+
+  // Add/edit handled by AddTaskDialog; table actions still use API for mark/delete
+
+  // moved toggleDone & removeTask below
+
+  const openEdit = useCallback((t: Task) => {
+    setEditing(t)
+    setAddOpen(true)
+  }, [])
+
+  const toggleDone = useCallback(async (id: string, done: boolean) => {
+    const res = await fetch(`/api/tasks/${id}`, {
+      method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done })
+    })
+    if (res.ok) await loadTasks()
+  }, [loadTasks])
+  const removeTask = useCallback(async (id: string) => {
+    const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE', credentials: 'include' })
+    if (res.ok) {
+      showToast('Task deleted successfully', 'success')
+      await loadTasks()
+    } else {
+      showToast('Failed to delete task', 'error')
+    }
+  }, [loadTasks, showToast])
+
   const columns = useMemo<ColumnDef<Task>[]>(() => [
     { id: 'expand', header: () => null, cell: ({ row }) => (
       <span
@@ -144,103 +249,7 @@ function TasksContent() {
     getRowCanExpand: () => canExpand(),
     getRowId: (row) => row.id,
   })
-
-  const loadTasks = useCallback(async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      params.set('page', String(pagination.pageIndex + 1))
-      params.set('limit', String(pagination.pageSize))
-      // Map filters into query params for backend
-      for (const f of filters) {
-        if (f.key === 'title' && f.op === 'contains') {
-          params.set('title', String(f.values[0] ?? ''))
-        } else if (f.key === 'category' && f.op === 'in') {
-          const cats = (f.values ?? []).map(String).join(',')
-          if (cats) params.set('categories', cats)
-        } else if (f.key === 'status' && f.op === 'in') {
-          const statuses = (f.values ?? []).map(String).join(',')
-          if (statuses) params.set('status', statuses)
-        } else if (f.key === 'createdAt' && f.op === 'between') {
-          const from = String(f.values[0] ?? '')
-          const to = String(f.values[1] ?? '')
-          if (from) params.set('createdFrom', from)
-          if (to) params.set('createdTo', to)
-        }
-      }
-      // Keep URL in sync with current filters
-      const qsEncoded = params.toString()
-      const qsPretty = qsEncoded.replace(/%2C/g, ',')
-      router.replace(`${pathname}?${qsPretty}`)
-      // Use encoded query for fetch to ensure compatibility
-      const res = await fetch(`/api/tasks?${qsEncoded}`, { credentials: 'include' })
-      if (!res.ok) throw new Error('Failed to load')
-      const data = await res.json()
-      setTasks(data.tasks ?? [])
-      setTotal(data.total ?? 0)
-    } finally {
-      setLoading(false)
-    }
-  }, [pagination.pageIndex, pagination.pageSize, filters, router, pathname])
-
-  useEffect(() => { loadTasks() }, [pagination.pageIndex, pagination.pageSize, filters, loadTasks])
-
-  async function loadCategories() {
-    try {
-      const res = await fetch('/api/categories', { credentials: 'include' })
-      const data = await res.json().catch(() => null)
-      if (data?.ok) {
-        setCategories(data.categories || [])
-        setCanAddCategory(Boolean(data.canAdd))
-      }
-    } catch { void 0 }
-  }
-
-  useEffect(() => { loadCategories() }, [])
-
-  // Parse URL params into filters and hydrate UI selections
-  useEffect(() => {
-    if (!searchParams) return
-    const next: Filter[] = []
-    const title = searchParams.get('title')
-    const categories = searchParams.get('categories')
-    const status = searchParams.get('status')
-    const createdFrom = searchParams.get('createdFrom')
-    const createdTo = searchParams.get('createdTo')
-    if (title) next.push(createFilter('title', 'contains', [title]))
-    if (categories) next.push(createFilter('category', 'in', categories.split(',').filter(Boolean)))
-    if (status) next.push(createFilter('status', 'in', status.split(',').filter(Boolean)))
-    if (createdFrom || createdTo) next.push(createFilter('createdAt', 'between', [createdFrom ?? '', createdTo ?? '']))
-    setFilters(next)
-  }, [searchParams])
-
-  const openAdd = useCallback(() => {
-    setEditing(null)
-    setAddOpen(true)
-  }, [])
-  const openEdit = useCallback((t: Task) => {
-    setEditing(t)
-    setAddOpen(true)
-  }, [])
-
-  // Add/edit handled by AddTaskDialog; table actions still use API for mark/delete
-
-  const toggleDone = useCallback(async (id: string, done: boolean) => {
-    const res = await fetch(`/api/tasks/${id}`, {
-      method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done })
-    })
-    if (res.ok) await loadTasks()
-  }, [loadTasks])
-  const removeTask = useCallback(async (id: string) => {
-    const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE', credentials: 'include' })
-    if (res.ok) {
-      showToast('Task deleted successfully', 'success')
-      await loadTasks()
-    } else {
-      showToast('Failed to delete task', 'error')
-    }
-  }, [loadTasks, showToast])
+  // moved callbacks above
 
   // Removed legacy totalPages calculation that referenced old `limit` state
 

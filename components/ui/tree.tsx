@@ -84,7 +84,7 @@ function TreeItem<T = unknown>({ item, className, asChild, children, ...props }:
   const Comp = asChild ? SlotPrimitive.Slot : 'button';
 
   return (
-    <TreeContext.Provider value={{ ...parentContext, currentItem: item }}>
+    <TreeContext.Provider value={{ ...parentContext, currentItem: item } as unknown as TreeContextValue<unknown>}>
       <Comp
         data-slot="tree-item"
         style={mergedStyle}

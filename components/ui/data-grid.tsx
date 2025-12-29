@@ -32,7 +32,7 @@ export type DataGridApiResponse<T> = {
   };
 };
 
-export interface DataGridContextProps<TData extends object> {
+export interface DataGridContextProps<TData extends RowData> {
   props: DataGridProps<TData>;
   table: Table<TData>;
   recordCount: number;
@@ -46,7 +46,7 @@ export type DataGridRequestParams = {
   columnFilters?: ColumnFiltersState;
 };
 
-export interface DataGridProps<TData extends object> {
+export interface DataGridProps<TData extends RowData> {
   className?: string;
   table?: Table<TData>;
   recordCount: number;
@@ -85,9 +85,7 @@ export interface DataGridProps<TData extends object> {
   };
 }
 
-const DataGridContext = createContext<
-  DataGridContextProps<unknown> | undefined
->(undefined);
+const DataGridContext = createContext<DataGridContextProps<RowData> | undefined>(undefined);
 
 function useDataGrid() {
   const context = useContext(DataGridContext);
@@ -97,7 +95,7 @@ function useDataGrid() {
   return context;
 }
 
-function DataGridProvider<TData extends object>({
+function DataGridProvider<TData extends RowData>({
   children,
   table,
   ...props
@@ -105,8 +103,8 @@ function DataGridProvider<TData extends object>({
   return (
     <DataGridContext.Provider
       value={{
-        props,
-        table,
+        props: props as unknown as DataGridProps<RowData>,
+        table: table as unknown as Table<RowData>,
         recordCount: props.recordCount,
         isLoading: props.isLoading || false,
       }}
@@ -116,7 +114,7 @@ function DataGridProvider<TData extends object>({
   );
 }
 
-function DataGrid<TData extends object>({ children, table, ...props }: DataGridProps<TData>) {
+function DataGrid<TData extends RowData>({ children, table, ...props }: DataGridProps<TData>) {
   const defaultProps: Partial<DataGridProps<TData>> = {
     loadingMode: 'skeleton',
     tableLayout: {

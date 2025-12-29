@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
 
+type UserProfileRow = {
+  id: number
+  userId: number
+  dob: Date | null
+  profileImageUrl: string | null
+  bio: string | null
+  timezone: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
 function getUserIdFromCookie(req: Request): number | null {
   const cookie = req.headers.get('cookie') || ''
   const match = cookie.match(/auth_token=([^;]+)/)
@@ -21,16 +32,6 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // Use Prisma Client if the UserProfile model exists; otherwise fall back to raw SQL.
-  type UserProfileRow = {
-    id: number
-    userId: number
-    dob: Date | null
-    profileImageUrl: string | null
-    bio: string | null
-    timezone: string | null
-    createdAt: Date
-    updatedAt: Date
-  }
   let profile: UserProfileRow | null = null
   const maybeProfile = prisma as unknown as { userProfile?: { findUnique?: (args: { where: { userId: number } }) => Promise<UserProfileRow | null> } }
   if (maybeProfile.userProfile?.findUnique) {

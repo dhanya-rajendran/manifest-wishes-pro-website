@@ -12,13 +12,23 @@ function getUserId(request: Request): number | null {
   return Number(payload.uid)
 }
 
+function getIdFromContext(context: unknown): string | null {
+  if (!context || typeof context !== 'object') return null
+  const c = context as { params?: unknown }
+  const p = c.params
+  if (!p || typeof p !== 'object') return null
+  const id = (p as Record<string, unknown>).id
+  return typeof id === 'string' ? id : null
+}
+
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  context: unknown,
 ) {
   const userId = getUserId(request)
   if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
-  const { id } = params
+  const id = getIdFromContext(context)
+  if (!id) return NextResponse.json({ ok: false, error: 'Invalid id' }, { status: 400 })
   const existing = await prisma.visionItem.findUnique({ where: { id } })
   if (!existing || existing.userId !== userId) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
   let json: unknown
@@ -30,11 +40,12 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  context: unknown,
 ) {
   const userId = getUserId(request)
   if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
-  const { id } = params
+  const id = getIdFromContext(context)
+  if (!id) return NextResponse.json({ ok: false, error: 'Invalid id' }, { status: 400 })
   const existing = await prisma.visionItem.findUnique({ where: { id } })
   if (!existing || existing.userId !== userId) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
   await prisma.visionItem.delete({ where: { id } })

@@ -29,7 +29,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Cell, flexRender, HeaderGroup, Row } from '@tanstack/react-table';
+import { flexRender, Row } from '@tanstack/react-table';
 import { GripHorizontal } from 'lucide-react';
 
 function DataGridTableDndRowHandle({ rowId }: { rowId: string }) {
@@ -58,7 +58,7 @@ function DataGridTableDndRow<TData>({ row }: { row: Row<TData> }) {
   };
   return (
     <DataGridTableBodyRow row={row} dndRef={setNodeRef} dndStyle={style} key={row.id}>
-      {row.getVisibleCells().map((cell: Cell<TData, unknown>, colIndex) => {
+      {row.getVisibleCells().map((cell, colIndex) => {
         return (
           <DataGridTableBodyRowCell cell={cell} key={colIndex}>
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -69,7 +69,7 @@ function DataGridTableDndRow<TData>({ row }: { row: Row<TData> }) {
   );
 }
 
-function DataGridTableDndRows<TData>({
+function DataGridTableDndRows({
   handleDragEnd,
   dataIds,
 }: {
@@ -92,7 +92,7 @@ function DataGridTableDndRows<TData>({
       <div className="relative">
         <DataGridTableBase>
           <DataGridTableHead>
-            {table.getHeaderGroups().map((headerGroup: HeaderGroup<TData>, index) => {
+            {table.getHeaderGroups().map((headerGroup, index) => {
               return (
                 <DataGridTableHeadRow headerGroup={headerGroup} key={index}>
                   {headerGroup.headers.map((header, index) => {
@@ -129,7 +129,7 @@ function DataGridTableDndRows<TData>({
               ))
             ) : table.getRowModel().rows.length ? (
               <SortableContext items={dataIds} strategy={verticalListSortingStrategy}>
-                {table.getRowModel().rows.map((row: Row<TData>) => {
+                {table.getRowModel().rows.map((row) => {
                   return <DataGridTableDndRow row={row} key={row.id} />;
                 })}
               </SortableContext>

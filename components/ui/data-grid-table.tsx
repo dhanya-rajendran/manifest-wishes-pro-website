@@ -2,7 +2,7 @@ import * as React from 'react';
 import { CSSProperties, Fragment, ReactNode } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useDataGrid } from '@/components/ui/data-grid';
-import { Cell, Column, flexRender, Header, HeaderGroup, Row } from '@tanstack/react-table';
+import { Cell, Column, flexRender, Header, HeaderGroup, Row, RowData } from '@tanstack/react-table';
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
@@ -75,12 +75,12 @@ function DataGridTableHead({ children }: { children: ReactNode }) {
   );
 }
 
-function DataGridTableHeadRow<TData>({
+function DataGridTableHeadRow({
   children,
   headerGroup,
 }: {
   children: ReactNode;
-  headerGroup: HeaderGroup<TData>;
+  headerGroup: HeaderGroup<RowData>;
 }) {
   const { props } = useDataGrid();
 
@@ -101,14 +101,14 @@ function DataGridTableHeadRow<TData>({
   );
 }
 
-function DataGridTableHeadRowCell<TData>({
+function DataGridTableHeadRowCell({
   children,
   header,
   dndRef,
   dndStyle,
 }: {
   children: ReactNode;
-  header: Header<TData, unknown>;
+  header: Header<RowData, unknown>;
   dndRef?: React.Ref<HTMLTableCellElement>;
   dndStyle?: CSSProperties;
 }) {
@@ -154,7 +154,7 @@ function DataGridTableHeadRowCell<TData>({
   );
 }
 
-function DataGridTableHeadRowCellResize<TData>({ header }: { header: Header<TData, unknown> }) {
+function DataGridTableHeadRowCellResize({ header }: { header: Header<RowData, unknown> }) {
   const { column } = header;
 
   return (
@@ -418,7 +418,7 @@ function DataGridTable<TData>() {
   return (
     <DataGridTableBase>
       <DataGridTableHead>
-        {table.getHeaderGroups().map((headerGroup: HeaderGroup<TData>, index) => {
+        {table.getHeaderGroups().map((headerGroup, index) => {
           return (
             <DataGridTableHeadRow headerGroup={headerGroup} key={index}>
               {headerGroup.headers.map((header, index) => {
@@ -478,19 +478,19 @@ function DataGridTable<TData>() {
           </tr>
         ) : table.getRowModel().rows.length ? (
           // Show actual data when not loading
-          table.getRowModel().rows.map((row: Row<TData>, index) => {
+          table.getRowModel().rows.map((row, index) => {
             return (
               <Fragment key={row.id}>
-                <DataGridTableBodyRow row={row} key={index}>
-                  {row.getVisibleCells().map((cell: Cell<TData, unknown>, colIndex) => {
+                <DataGridTableBodyRow row={row as Row<TData>} key={index}>
+                  {row.getVisibleCells().map((cell, colIndex) => {
                     return (
-                      <DataGridTableBodyRowCell cell={cell} key={colIndex}>
+                      <DataGridTableBodyRowCell cell={cell as unknown as Cell<object, unknown>} key={colIndex}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </DataGridTableBodyRowCell>
                     );
                   })}
                 </DataGridTableBodyRow>
-                {row.getIsExpanded() && <DataGridTableBodyRowExpandded row={row} />}
+                {row.getIsExpanded() && <DataGridTableBodyRowExpandded row={row as Row<TData>} />}
               </Fragment>
             );
           })
