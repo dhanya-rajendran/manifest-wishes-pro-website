@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 // Note: relax typing for dynamic filters to avoid TS mismatches with client types
+// Infer the FocusSession row type from Prisma to avoid brittle model imports
+type FocusSessionRow = Awaited<ReturnType<typeof prisma.focusSession.findMany>>[number]
 
 function getUserId(request: Request): number | null {
   const cookieHeader = request.headers.get('cookie') || ''
@@ -35,14 +37,14 @@ export async function GET(request: Request) {
   }
 
   const total = await prisma.focusSession.count({ where })
-  const sessions = await prisma.focusSession.findMany({
+  const sessions: FocusSessionRow[] = await prisma.focusSession.findMany({
     where,
     orderBy: { startAt: 'desc' },
     skip: (page - 1) * limit,
     take: limit,
   })
   // Attach pause/stop history without relying on include typings
-  const ids = sessions.map((s) => s.id)
+  const ids = sessions.map((s: FocusSessionRow) => s.id)
   let pauses: Array<{ id: string; sessionId: string; startedAt: Date; endedAt: Date | null }> = []
   let stops: Array<{ id: string; sessionId: string; stoppedAt: Date }> = []
   if (ids.length) {
@@ -83,7 +85,7 @@ export async function GET(request: Request) {
     arr.push(s)
     stopMap.set(s.sessionId, arr)
   }
-  const sessionsWith = sessions.map((s) => ({
+  const sessionsWith = sessions.map((s: FocusSessionRow) => ({
     ...s,
     pauses: (pauseMap.get(s.id) || []).map((p) => ({ id: p.id, startAt: p.startedAt.toISOString(), endAt: p.endedAt ? p.endedAt.toISOString() : null })),
     stops: (stopMap.get(s.id) || []).map((st) => ({ id: st.id, stopAt: st.stoppedAt.toISOString() })),
