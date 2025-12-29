@@ -29,10 +29,10 @@ import {
 import { restrictToParentElement } from '@dnd-kit/modifiers';
 import { horizontalListSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Cell, flexRender, Header } from '@tanstack/react-table';
+import { Cell, flexRender, Header, RowData } from '@tanstack/react-table';
 import { GripVertical } from 'lucide-react';
 
-function DataGridTableDndHeader<TData>({ header }: { header: Header<TData, unknown> }) {
+function DataGridTableDndHeader({ header }: { header: Header<RowData, unknown> }) {
   const { props } = useDataGrid();
   const { column } = header;
 
@@ -73,7 +73,7 @@ function DataGridTableDndHeader<TData>({ header }: { header: Header<TData, unkno
   );
 }
 
-function DataGridTableDndCell<TData>({ cell }: { cell: Cell<TData, unknown> }) {
+function DataGridTableDndCell({ cell }: { cell: Cell<RowData, unknown> }) {
   const { isDragging, setNodeRef, transform, transition } = useSortable({
     id: cell.column.id,
   });
@@ -112,7 +112,6 @@ function DataGridTableDnd({ handleDragEnd }: { handleDragEnd: (event: DragEndEve
         <DataGridTableBase>
           <DataGridTableHead>
             {table.getHeaderGroups().map((headerGroup, index) => {
-              console.log('table.getState().columnOrder:', table.getState().columnOrder);
 
               return (
                 <DataGridTableHeadRow headerGroup={headerGroup} key={index}>

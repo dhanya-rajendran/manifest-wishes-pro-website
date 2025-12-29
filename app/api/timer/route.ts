@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
-import { Prisma } from '@prisma/client'
+import { Prisma, FocusSession } from '@prisma/client'
 // Note: relax typing for dynamic filters to avoid TS mismatches with client types
 
 function getUserId(request: Request): number | null {
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   }
 
   const total = await prisma.focusSession.count({ where })
-  const sessions = await prisma.focusSession.findMany({
+  const sessions: FocusSession[] = await prisma.focusSession.findMany({
     where,
     orderBy: { startAt: 'desc' },
     skip: (page - 1) * limit,
