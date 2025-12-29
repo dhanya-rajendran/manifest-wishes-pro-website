@@ -1,8 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '../lib/auth'
 
+const prisma = new PrismaClient({ log: ['error', 'warn'] })
+
 async function main() {
-  const prisma = new PrismaClient({ log: ['error', 'warn'] })
 
   // Seed subscription plans (Free, Silver, Ultimate)
   const plans = [
@@ -62,7 +63,7 @@ async function main() {
   ]
 
   for (const plan of plans) {
-    await (prisma as any).subscriptionPlan.upsert({
+    await prisma.subscriptionPlan.upsert({
       where: { key: plan.key },
       update: {},
       create: plan,
@@ -83,11 +84,11 @@ async function main() {
   })
 
   // Attach Ultimate subscription via new table
-  const ultimatePlan = await (prisma as any).subscriptionPlan.findUnique({ where: { key: 'ultimate' } })
+  const ultimatePlan = await prisma.subscriptionPlan.findUnique({ where: { key: 'ultimate' } })
   if (ultimatePlan) {
     // Ensure only one active subscription
-    await (prisma as any).userSubscription.deleteMany({ where: { userId: user.id } })
-    await (prisma as any).userSubscription.create({
+    await prisma.userSubscription.deleteMany({ where: { userId: user.id } })
+    await prisma.userSubscription.create({
       data: {
         userId: user.id,
         planId: ultimatePlan.id,
@@ -106,9 +107,12 @@ async function main() {
   const ultimateUser = await prisma.user.findUnique({ where: { email } })
   if (ultimateUser) {
     const demoCategory = 'reminder'
-    try {
+    const existing = await prisma.userCategory.findUnique({
+      where: { userId_name: { userId: ultimateUser.id, name: demoCategory } },
+    })
+    if (!existing) {
       await prisma.userCategory.create({ data: { userId: ultimateUser.id, name: demoCategory } })
-    } catch {}
+    }
   }
 
   console.log('\nSeeded Ultimate user:')
@@ -116,7 +120,11 @@ async function main() {
   console.log(`  Password: ${plainPassword}`)
 }
 
-main().catch((e) => {
-  console.error(e)
-  process.exit(1)
-})
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })

@@ -220,7 +220,7 @@ function AccordionMenuItem({
   VariantProps<typeof itemVariants> & {
     onClick?: React.MouseEventHandler<HTMLElement>;
   }) {
-  const { classNames, selectedValue, matchPath, onItemClick } = React.useContext(AccordionMenuContext);
+  const { classNames, selectedValue, onItemClick } = React.useContext(AccordionMenuContext);
   return (
     <AccordionPrimitive.Item className="flex" {...props}>
       <AccordionPrimitive.Header className="flex w-full">

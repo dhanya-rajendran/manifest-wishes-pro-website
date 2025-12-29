@@ -15,6 +15,7 @@ import {
 import { Card, CardContent } from '../../../components/ui/card'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { Sparkles, Target, NotebookPen, Star, Eye, EyeOff } from 'lucide-react'
+import Image from 'next/image'
 
 export default function SignupPage() {
   const [error, setError] = useState('')
@@ -251,13 +252,13 @@ export default function SignupPage() {
                   <Button type="button" variant="outline" aria-label="Continue with Google" className="w-full bg-white text-foreground border hover:bg-gray-100 justify-center gap-2" onClick={() => {
                     window.location.href = '/api/auth/oauth/google'
                   }}>
-                    <img src="/google-color.svg" alt="Google" className="h-4 w-4" />
+                    <Image src="/google-color.svg" alt="Google" width={16} height={16} />
                     Continue with Google
                   </Button>
                   <Button type="button" variant="outline" aria-label="Continue with Facebook" className="w-full bg-white text-foreground border hover:bg-gray-100 justify-center gap-2" onClick={() => {
                     window.location.href = '/api/auth/oauth/facebook'
                   }}>
-                    <img src="/facebook.svg" alt="Facebook" className="h-4 w-4" />
+                    <Image src="/facebook.svg" alt="Facebook" width={16} height={16} />
                     Continue with Facebook
                   </Button>
                 </div>

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import VisionBoardInteractive from "@/components/VisionBoardInteractive";
 
 type Item = { id: string; title: string; imageUrl?: string; description?: string; createdAt: string };
@@ -105,7 +106,7 @@ export default function VisionPage() {
             items.map((it) => (
               <div key={it.id} className="rounded border bg-white">
                 {it.imageUrl ? (
-                  <img src={it.imageUrl} alt={it.title} className="h-40 w-full rounded-t object-cover" />
+                  <Image src={it.imageUrl} alt={it.title} width={800} height={160} className="h-40 w-full rounded-t object-cover" unoptimized />
                 ) : (
                   <div className="h-40 w-full rounded-t bg-gray-100" />
                 )}
@@ -145,7 +146,7 @@ export default function VisionPage() {
                   className="w-full rounded border px-3 py-2 text-sm"
                 />
                 {preview && (
-                  <img src={preview} alt="Preview" className="h-32 w-full rounded object-cover" />
+                  <Image src={preview} alt="Preview" width={800} height={128} className="h-32 w-full rounded object-cover" unoptimized />
                 )}
                 <p className="text-xs text-gray-600">PNG/JPEG/WEBP, max 500KB</p>
                 {error && <p className="text-xs text-red-600">{error}</p>}

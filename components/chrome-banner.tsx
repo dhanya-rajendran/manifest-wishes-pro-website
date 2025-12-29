@@ -8,22 +8,27 @@ function getExtensionUrl(): string | null {
 }
 
 export default function ChromeBanner() {
-  const [installed, setInstalled] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
+  const [installed, setInstalled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('chromeExtensionInstalled') === 'true'
+    } catch {
+      return false
+    }
+  })
+  const [dismissed, setDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('chromeBannerDismissed') === 'true'
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
-    try {
-      const d = localStorage.getItem('chromeBannerDismissed') === 'true'
-      const i = localStorage.getItem('chromeExtensionInstalled') === 'true'
-      setDismissed(d)
-      setInstalled(i)
-    } catch {}
-
     // Optional: extension can postMessage({ mwpExtensionInstalled: true }) to the page
     function onMessage(e: MessageEvent) {
       if (e?.data && (e.data.mwpExtensionInstalled === true || e.data.__MWP_EXT_INSTALLED__ === true)) {
         setInstalled(true)
-        try { localStorage.setItem('chromeExtensionInstalled', 'true') } catch {}
+        try { localStorage.setItem('chromeExtensionInstalled', 'true') } catch { void 0 }
       }
     }
     window.addEventListener('message', onMessage)
@@ -75,8 +80,8 @@ export default function ChromeBanner() {
           </div>
           <button
             type="button"
-            className="absolute right-[20px] top-1/2 -translate-y-1/2 rounded-md p-1.5 text-white/90 hover:bg-white/10"
-            onClick={() => { setDismissed(true); try { localStorage.setItem('chromeBannerDismissed', 'true') } catch {} }}
+          className="absolute right-[20px] top-1/2 -translate-y-1/2 rounded-md p-1.5 text-white/90 hover:bg-white/10"
+            onClick={() => { setDismissed(true); try { localStorage.setItem('chromeBannerDismissed', 'true') } catch { void 0 } }}
             aria-label="Dismiss"
           >
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">

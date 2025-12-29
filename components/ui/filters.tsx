@@ -53,7 +53,6 @@ export function createFilter(key: string, op: Filter['op'], values: Filter['valu
 type ButtonVariant = 'primary' | 'secondary' | 'ghost'
 type DateRangeValue = { from: string; to: string }
 type FilterValue = string | string[] | DateRangeValue | boolean
-type ValuesState = Record<string, FilterValue>
 type FormValues = Record<string, FilterValue>
 type ComboItem = { id: string; value: string; icon?: React.ReactNode }
 
@@ -83,7 +82,7 @@ function MultiSelectChips({
         items={items}
         multiple
         value={selectedItems}
-        onValueChange={(value: unknown, _details: unknown) => {
+        onValueChange={(value: unknown) => {
           const next = Array.isArray(value) ? (value as ComboItem[]) : []
           onChange(next.map((n) => n.id))
         }}
@@ -174,7 +173,7 @@ export function Filters({ fields, filters, onChange, size = 'sm', radius = 'md',
     return next
   }
 
-  const { register, control, reset, getValues, formState: { isDirty }, setValue, watch } = useForm<FormValues>({
+  const { register, control, reset, getValues, formState: { isDirty } } = useForm<FormValues>({
     defaultValues: hydrateDefaultsFromFilters(filters),
   })
 
@@ -285,7 +284,6 @@ export function Filters({ fields, filters, onChange, size = 'sm', radius = 'md',
             )
           }
           if (f.type === 'multiselect') {
-            const selectedArr = Array.isArray(watch(f.key)) ? (watch(f.key) as string[]) : []
             return (
               <Controller
                 key={f.key}
@@ -307,7 +305,6 @@ export function Filters({ fields, filters, onChange, size = 'sm', radius = 'md',
             )
           }
           if (f.type === 'dateRange') {
-            const v = ((watch(f.key) as DateRangeValue) ?? { from: '', to: '' })
             return (
               <Controller
                 key={f.key}
@@ -318,13 +315,12 @@ export function Filters({ fields, filters, onChange, size = 'sm', radius = 'md',
                   <DateRangeField
                     key={f.key}
                     className={f.className}
-                    icon={f.icon}
                     controlClassName={controlBase}
                     value={(field.value as DateRangeValue) ?? { from: '', to: '' }}
                     formatFn={(from?: string, to?: string) => {
                       const fmt = (s?: string) => (s ? format(new Date(s), 'yyyy-MM-dd') : '')
-                      const a = fmt((field.value as DateRangeValue)?.from)
-                      const b = fmt((field.value as DateRangeValue)?.to)
+                      const a = fmt(from)
+                      const b = fmt(to)
                       return a || b ? `${a} – ${b}` : f.label
                     }}
                     onChange={(next) => field.onChange(next)}
@@ -375,7 +371,7 @@ export function Filters({ fields, filters, onChange, size = 'sm', radius = 'md',
       <div className="flex items-center gap-2">
         {(() => { const buttonVariant: ButtonVariant = variant === 'outline' ? 'ghost' : variant; return (
           <>
-            <Button variant="primary" onClick={apply} disabled={!isDirty}>Apply</Button>
+            <Button variant={buttonVariant} onClick={apply} disabled={!isDirty}>Apply</Button>
             {filters.length > 0 && (
               <Button variant="destructive" onClick={clear}>Clear</Button>
             )}
@@ -385,25 +381,14 @@ export function Filters({ fields, filters, onChange, size = 'sm', radius = 'md',
     </div>
   )
 }
-function toInputDate(d: Date | undefined): string {
-  return d ? format(d, 'yyyy-MM-dd') : ''
-}
-
-function formatRangeLabel(from?: Date, to?: Date): string {
-  if (from && to) return `${format(from, 'LLL dd, y')} - ${format(to, 'LLL dd, y')}`
-  if (from) return format(from, 'LLL dd, y')
-  return 'Pick a date range'
-}
 export function DateRangeField({
   className,
-  icon,
   value,
   onChange,
   formatFn,
   controlClassName,
 }: {
   className?: string
-  icon?: React.ReactNode
   value: DateRangeValue
   onChange: (val: DateRangeValue) => void
   formatFn?: (from?: string, to?: string) => string

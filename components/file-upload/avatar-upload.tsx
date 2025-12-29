@@ -1,6 +1,7 @@
 'use client';
 
 import { formatBytes, useFileUpload, type FileWithPreview } from '@/hooks/use-file-upload';
+import Image from 'next/image';
 import { Alert, AlertContent, AlertDescription, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { TriangleAlert, User, X } from 'lucide-react';
@@ -60,7 +61,7 @@ export default function AvatarUpload({
           <input {...getInputProps()} className="sr-only" />
 
           {previewUrl ? (
-            <img src={previewUrl} alt="Avatar" className="h-full w-full object-cover" />
+            <Image src={previewUrl} alt="Avatar" fill sizes="96px" className="object-cover" unoptimized />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
               <User className="size-6 text-muted-foreground" />

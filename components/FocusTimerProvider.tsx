@@ -2,17 +2,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 type Mode = 'focus' | 'break'
-type TimerSnapshot = {
-  running: boolean
-  paused: boolean
-  startTime: number | null
-  targetEnd: number | null
-  focusDurationMin: number
-  breakDurationMin: number
-  mode: Mode
-  remaining: number
-  note: string
-}
 
 type FocusTimerCtx = {
   running: boolean
@@ -57,7 +46,7 @@ function beep() {
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
     o.start()
     o.stop(ctx.currentTime + 0.4)
-  } catch {}
+  } catch { void 0 }
 }
 
 const FocusTimerContext = createContext<FocusTimerCtx | null>(null)
@@ -65,7 +54,7 @@ const FocusTimerContext = createContext<FocusTimerCtx | null>(null)
 export function FocusTimerProvider({ children }: { children: React.ReactNode }) {
   const [running, setRunning] = useState<boolean>(false)
   const [paused, setPaused] = useState<boolean>(false)
-  const [startTime, setStartTime] = useState<number | null>(null)
+  // Removed unused startTime state
   const [targetEnd, setTargetEnd] = useState<number | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [focusDurationMin, setFocusDurationMin] = useState<number>(25)
@@ -93,13 +82,12 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
     try {
       if (typeof Notification !== 'undefined') {
         if (Notification.permission === 'granted') {
-          // eslint-disable-next-line no-new
           new Notification('Focus Time complete!', { body: `${durationMin} minutes done.` })
         } else if (Notification.permission === 'default') {
           await Notification.requestPermission()
         }
       }
-    } catch {}
+    } catch { void 0 }
     try {
       if (sessionId) {
         await fetch('/api/timer/stop', {
@@ -109,8 +97,8 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
           body: JSON.stringify({ sessionId, stoppedAt: new Date().toISOString() }),
         })
       }
-    } catch {}
-  }, [clearTick, durationMin, note, sessionId])
+    } catch { void 0 }
+  }, [clearTick, durationMin, sessionId])
 
   // Restore active session from server on mount
   useEffect(() => {
@@ -123,7 +111,6 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
         const sess = data.session as { id: string; startAt: string; endAt?: string | null; targetEnd?: string | null; note?: string | null; mode?: Mode; plannedMinutes?: number | null } | null
         if (!sess || cancelled) return
         setSessionId(sess.id)
-        setStartTime(new Date(sess.startAt).getTime())
         setMode(sess.mode ?? 'focus')
         setNote(sess.note ?? '')
         // Hydrate the duration slider from the session's planned minutes for the current mode
@@ -156,7 +143,7 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
             }
           }, 500)
         }
-      } catch {}
+      } catch { void 0 }
       finally {
         if (!cancelled) setRestoring(false)
       }
@@ -181,10 +168,10 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
       const data = await res.json()
       const sess = data.session as { id: string }
       setSessionId(sess.id)
-    } catch {}
+    } catch { void 0 }
     setRunning(true)
     setPaused(false)
-    setStartTime(now)
+    // setStartTime(now) // removed – state no longer exists
     setTargetEnd(end)
     setRemaining(end - now)
     clearTick()
@@ -200,7 +187,7 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
       if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
         await Notification.requestPermission()
       }
-    } catch {}
+    } catch { void 0 }
   }, [clearTick, durationMin, mode, note, onComplete, running])
 
   const pause = useCallback(async () => {
@@ -217,7 +204,7 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
           body: JSON.stringify({ sessionId, startedAt: new Date().toISOString() })
         })
       }
-    } catch {}
+    } catch { void 0 }
   }, [clearTick, paused, remaining, running, targetEnd, sessionId])
 
   const resume = useCallback(async () => {
@@ -242,7 +229,7 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
           body: JSON.stringify({ sessionId, endedAt: new Date().toISOString(), targetEnd: new Date(end).toISOString() })
         })
       }
-    } catch {}
+    } catch { void 0 }
   }, [clearTick, onComplete, paused, remaining, running, sessionId])
 
   const stopAndSave = useCallback(async () => {
@@ -260,7 +247,7 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
           body: JSON.stringify({ sessionId, stoppedAt: new Date(now).toISOString() })
         })
       }
-    } catch {}
+    } catch { void 0 }
   }, [clearTick, running, sessionId])
 
   // Persist updates to the active session
@@ -288,7 +275,7 @@ export function FocusTimerProvider({ children }: { children: React.ReactNode }) 
           }
         }
       }
-    } catch {}
+    } catch { void 0 }
   }, [remaining, sessionId])
 
   const value: FocusTimerCtx = {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 // Use dynamic import for basic-ftp in Node runtime
 import { Readable } from 'stream'
+import jwt from 'jsonwebtoken'
 
 export const runtime = 'nodejs'
 
@@ -10,7 +11,6 @@ function getUserIdFromCookie(req: Request): number | null {
   const token = match?.[1]
   if (!token) return null
   try {
-    const jwt = require('jsonwebtoken')
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-change-me') as { uid: number | string }
     const uid = payload?.uid
     return typeof uid === 'string' ? (uid === 'demo' ? null : parseInt(uid, 10)) : uid ?? null
@@ -75,8 +75,9 @@ export async function POST(req: Request) {
     const publicUrl = `${publicBaseUrl}/${userId}/${uploadDir}/${baseName}`.replace(/\/+/g, '/')
 
     return NextResponse.json({ ok: true, url: publicUrl })
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Upload failed' }, { status: 500 })
+  } catch (err: unknown) {
+    const message = typeof err === 'object' && err && 'message' in err ? String((err as { message?: unknown }).message) : 'Upload failed'
+    return NextResponse.json({ error: message }, { status: 500 })
   } finally {
     client.close()
   }

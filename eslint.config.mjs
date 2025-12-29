@@ -15,8 +15,19 @@ export default [
     plugins: {
       '@next/next': nextPlugin
     },
+    settings: {
+      next: {
+        rootDir: '.'
+      }
+    },
     rules: {
-      ...nextPlugin.configs.recommended.rules
+      ...nextPlugin.configs.recommended.rules,
+      // Approximate core-web-vitals upgrades locally
+      '@next/next/no-sync-scripts': 'error',
+      '@next/next/no-img-element': 'error',
+      '@next/next/no-html-link-for-pages': 'error',
+      '@next/next/google-font-preconnect': 'error',
+      '@next/next/google-font-display': 'error'
     }
   },
   {
@@ -26,10 +37,8 @@ export default [
       sourceType: 'module'
     },
     rules: {
-      // Keep lint actionable without blocking on existing anys
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': 'warn',
-      'no-empty': 'off'
+      // Use typescript-eslint recommended severities (no local relaxations)
+      // Treat warnings as errors via lint:ci script when needed
     }
   }
   ,
@@ -55,20 +64,11 @@ export default [
     }
   },
   {
-    files: ['app/api/**'],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off'
-    }
-  },
-  {
     plugins: {
       'react-hooks': reactHooks
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
-      'react-hooks/exhaustive-deps': 'warn',
-      'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/set-state-in-effect': 'off'
+      ...reactHooks.configs.recommended.rules
     }
   }
 ]

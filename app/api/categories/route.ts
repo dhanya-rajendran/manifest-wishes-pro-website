@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   }
   try {
     await prisma.userCategory.create({ data: { userId, name } })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ ok: false, error: 'Category already exists' }, { status: 400 })
   }
   return NextResponse.json({ ok: true })

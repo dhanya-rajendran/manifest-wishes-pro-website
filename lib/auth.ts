@@ -3,11 +3,11 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 
-export function signToken(payload: object) {
+export function signToken<T extends Record<string, unknown>>(payload: T): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
 }
 
-export function verifyToken<T = any>(token: string): T | null {
+export function verifyToken<T = unknown>(token: string): T | null {
   try {
     return jwt.verify(token, JWT_SECRET) as T
   } catch {

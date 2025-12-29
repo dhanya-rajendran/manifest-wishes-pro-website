@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 // Use dynamic import for basic-ftp to avoid bundling issues
 import { Readable } from 'stream'
+import jwt from 'jsonwebtoken'
 
 export const runtime = 'nodejs'
 
@@ -11,7 +12,6 @@ function getUserIdFromCookie(req: Request): number | null {
   const token = match?.[1]
   if (!token) return null
   try {
-    const jwt = require('jsonwebtoken')
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-change-me') as { uid: number | string }
     const uid = payload?.uid
     return typeof uid === 'string' ? (uid === 'demo' ? null : parseInt(uid, 10)) : uid ?? null
@@ -83,9 +83,8 @@ export async function POST(req: Request) {
     const publicUrl = `${publicBaseUrl}/${userId}/${uploadDir}/${baseName}`.replace(/\/+/g, '/')
 
     // Persist on profile for convenience
-    const anyPrisma: any = prisma
-    if (anyPrisma.userProfile?.upsert) {
-      await anyPrisma.userProfile.upsert({
+    if ((prisma as { userProfile?: { upsert?: unknown } }).userProfile?.upsert) {
+      await prisma.userProfile.upsert({
         where: { userId },
         update: { profileImageUrl: publicUrl },
         create: { userId, profileImageUrl: publicUrl },
@@ -95,8 +94,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true, url: publicUrl })
-  } catch (err: any) {
-    const message = err?.message || 'Upload failed'
+  } catch (err: unknown) {
+    const message = typeof err === 'object' && err && 'message' in err ? String((err as { message?: unknown }).message) : 'Upload failed'
     // Provide helpful debug info when FTP_DEBUG=true
     const debug = (process.env.FTP_DEBUG || 'false').toLowerCase() === 'true'
     const info = debug ? { baseDir, uploadDir, userId } : undefined

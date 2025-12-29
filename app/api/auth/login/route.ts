@@ -20,8 +20,8 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
   const ok = await comparePassword(password, user.password)
   if (!ok) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
-  const emailVerified = (user as any).emailVerified ?? false
-  const phoneVerified = (user as any).phoneVerified ?? false
+  const emailVerified = user.emailVerified ?? false
+  const phoneVerified = user.phoneVerified ?? false
   if (!emailVerified || !phoneVerified) {
     const missing: string[] = []
     if (!emailVerified) missing.push('Email')

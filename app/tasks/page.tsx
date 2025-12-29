@@ -1,10 +1,10 @@
 "use client"
 export const dynamic = 'force-dynamic'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import type { ComponentType, SVGProps } from 'react'
 import { format } from 'date-fns'
-import { Pencil, Trash2, Briefcase, Heart, User as UserIcon, Target, Check, Tag, Bell, Car, Newspaper, Plus } from 'lucide-react'
+import { Pencil, Trash2, Briefcase, Heart, User as UserIcon, Target, Tag, Bell, Car, Newspaper, Plus } from 'lucide-react'
 import { Toast } from '@base-ui/react/toast'
 import { Filters, createFilter, type Filter, type FilterFieldConfig } from '@/components/ui/filters'
 import { ReToastViewport } from '@/components/ui/reui-toast'
@@ -13,7 +13,7 @@ import { DataGrid, DataGridContainer } from '@/components/ui/data-grid'
 import { DataGridTable } from '@/components/ui/data-grid-table'
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header'
 import { DataGridPagination } from '@/components/ui/data-grid-pagination'
-import { ColumnDef, ExpandedState, getCoreRowModel, getPaginationRowModel, PaginationState, useReactTable, type Row } from '@tanstack/react-table'
+import { ColumnDef, ExpandedState, getCoreRowModel, getPaginationRowModel, PaginationState, useReactTable } from '@tanstack/react-table'
 import AddTaskDialog from '@/components/add-task-dialog'
 
 type Category = 'work' | 'health' | 'personal' | 'goal'
@@ -62,9 +62,9 @@ function TasksContent() {
   const [categories, setCategories] = useState<string[]>([])
   const [canAddCategory, setCanAddCategory] = useState(false)
   const toastManager = useMemo(() => Toast.createToastManager(), [])
-  function showToast(message: string, type: 'success' | 'error') {
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
     toastManager.add({ title: type === 'success' ? 'Success' : 'Error', description: message, type, timeout: 3000 })
-  }
+  }, [toastManager])
 
   function truncate20(s: string) { return s.length > 20 ? `${s.slice(0, 20)}…` : s }
 
@@ -128,9 +128,9 @@ function TasksContent() {
           </Button>
         </div>
       ), enableSorting: false, size: 180 },
-  ], [])
+  ], [openEdit, removeTask, toggleDone])
 
-  const canExpand = (row: Row<Task>) => true
+  const canExpand = () => true
   const table = useReactTable({
     data: tasks,
     columns,
@@ -141,11 +141,11 @@ function TasksContent() {
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getRowCanExpand: (row) => canExpand(row),
+    getRowCanExpand: () => canExpand(),
     getRowId: (row) => row.id,
   })
 
-  async function loadTasks() {
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
@@ -181,9 +181,9 @@ function TasksContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.pageIndex, pagination.pageSize, filters, router, pathname])
 
-  useEffect(() => { loadTasks() }, [pagination.pageIndex, pagination.pageSize, filters])
+  useEffect(() => { loadTasks() }, [pagination.pageIndex, pagination.pageSize, filters, loadTasks])
 
   async function loadCategories() {
     try {
@@ -193,7 +193,7 @@ function TasksContent() {
         setCategories(data.categories || [])
         setCanAddCategory(Boolean(data.canAdd))
       }
-    } catch {}
+    } catch { void 0 }
   }
 
   useEffect(() => { loadCategories() }, [])
@@ -212,28 +212,27 @@ function TasksContent() {
     if (status) next.push(createFilter('status', 'in', status.split(',').filter(Boolean)))
     if (createdFrom || createdTo) next.push(createFilter('createdAt', 'between', [createdFrom ?? '', createdTo ?? '']))
     setFilters(next)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
-  function openAdd() {
+  const openAdd = useCallback(() => {
     setEditing(null)
     setAddOpen(true)
-  }
-  function openEdit(t: Task) {
+  }, [])
+  const openEdit = useCallback((t: Task) => {
     setEditing(t)
     setAddOpen(true)
-  }
+  }, [])
 
   // Add/edit handled by AddTaskDialog; table actions still use API for mark/delete
 
-  async function toggleDone(id: string, done: boolean) {
+  const toggleDone = useCallback(async (id: string, done: boolean) => {
     const res = await fetch(`/api/tasks/${id}`, {
       method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done })
     })
     if (res.ok) await loadTasks()
-  }
-  async function removeTask(id: string) {
+  }, [loadTasks])
+  const removeTask = useCallback(async (id: string) => {
     const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE', credentials: 'include' })
     if (res.ok) {
       showToast('Task deleted successfully', 'success')
@@ -241,7 +240,7 @@ function TasksContent() {
     } else {
       showToast('Failed to delete task', 'error')
     }
-  }
+  }, [loadTasks, showToast])
 
   // Removed legacy totalPages calculation that referenced old `limit` state
 

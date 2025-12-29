@@ -56,7 +56,7 @@ export default function ThreeSixNineMethod() {
           };
         }
       }
-    } catch {}
+    } catch { void 0 }
     const id = window.requestAnimationFrame(() => {
       if (next) setState(next);
     });
@@ -75,7 +75,7 @@ export default function ThreeSixNineMethod() {
         const data = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
         (data as Record<string, unknown>)[dayKey] = state;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      } catch {}
+      } catch { void 0 }
     }, 350);
     return () => {
       if (saveTimer.current) {
@@ -106,7 +106,7 @@ export default function ThreeSixNineMethod() {
       const data = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
       delete (data as Record<string, unknown>)[dayKey];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {}
+    } catch { void 0 }
   };
 
   // Compute counts for DB sync
@@ -150,6 +150,7 @@ export default function ThreeSixNineMethod() {
       }
       setSaveStatus("saved");
     } catch (e) {
+      console.log("🚀 ~ saveToDb ~ e:", e)
       setSaveStatus("error");
       setErrorMsg("Network error while saving.");
     }

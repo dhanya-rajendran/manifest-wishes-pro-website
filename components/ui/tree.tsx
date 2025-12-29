@@ -8,10 +8,15 @@ import { Slot as SlotPrimitive } from 'radix-ui';
 
 type ToggleIconType = 'chevron' | 'plus-minus';
 
-interface TreeContextValue<T = any> {
+interface TreeApi {
+  getContainerProps?: () => Partial<React.HTMLAttributes<HTMLDivElement>>;
+  getDragLineStyle?: () => React.CSSProperties;
+}
+
+interface TreeContextValue<T = unknown> {
   indent: number;
   currentItem?: ItemInstance<T>;
-  tree?: any;
+  tree?: TreeApi;
   toggleIconType?: ToggleIconType;
 }
 
@@ -22,18 +27,19 @@ const TreeContext = React.createContext<TreeContextValue>({
   toggleIconType: 'plus-minus',
 });
 
-function useTreeContext<T = any>() {
+function useTreeContext<T = unknown>() {
   return React.useContext(TreeContext) as TreeContextValue<T>;
 }
 
 interface TreeProps extends React.HTMLAttributes<HTMLDivElement> {
   indent?: number;
-  tree?: any;
+  tree?: TreeApi;
   toggleIconType?: ToggleIconType;
 }
 
 function Tree({ indent = 20, tree, className, toggleIconType = 'chevron', ...props }: TreeProps) {
-  const containerProps = tree && typeof tree.getContainerProps === 'function' ? tree.getContainerProps() : {};
+  const containerProps: Partial<React.HTMLAttributes<HTMLDivElement>> =
+    tree && typeof tree.getContainerProps === 'function' ? tree.getContainerProps() || {} : {};
   const mergedProps = { ...props, ...containerProps };
 
   // Extract style from mergedProps to merge with our custom styles
@@ -52,17 +58,18 @@ function Tree({ indent = 20, tree, className, toggleIconType = 'chevron', ...pro
   );
 }
 
-interface TreeItemProps<T = any> extends React.HTMLAttributes<HTMLButtonElement> {
+interface TreeItemProps<T = unknown> extends React.HTMLAttributes<HTMLButtonElement> {
   item: ItemInstance<T>;
   indent?: number;
   asChild?: boolean;
 }
 
-function TreeItem<T = any>({ item, className, asChild, children, ...props }: Omit<TreeItemProps<T>, 'indent'>) {
+function TreeItem<T = unknown>({ item, className, asChild, children, ...props }: Omit<TreeItemProps<T>, 'indent'>) {
   const parentContext = useTreeContext<T>();
   const { indent } = parentContext;
 
-  const itemProps = typeof item.getProps === 'function' ? item.getProps() : {};
+  const itemProps: Partial<React.ButtonHTMLAttributes<HTMLButtonElement>> =
+    typeof item.getProps === 'function' ? (item.getProps() as Partial<React.ButtonHTMLAttributes<HTMLButtonElement>>) : {};
   const mergedProps = { ...props, ...itemProps };
 
   // Extract style from mergedProps to merge with our custom styles
@@ -99,11 +106,11 @@ function TreeItem<T = any>({ item, className, asChild, children, ...props }: Omi
   );
 }
 
-interface TreeItemLabelProps<T = any> extends React.HTMLAttributes<HTMLSpanElement> {
+interface TreeItemLabelProps<T = unknown> extends React.HTMLAttributes<HTMLSpanElement> {
   item?: ItemInstance<T>;
 }
 
-function TreeItemLabel<T = any>({ item: propItem, children, className, ...props }: TreeItemLabelProps<T>) {
+function TreeItemLabel<T = unknown>({ item: propItem, children, className, ...props }: TreeItemLabelProps<T>) {
   const { currentItem, toggleIconType } = useTreeContext<T>();
   const item = propItem || currentItem;
 

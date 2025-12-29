@@ -17,22 +17,25 @@ function applyThemeClass(choice: ThemeChoice) {
 }
 
 export default function ThemeToggle() {
-  const [value, setValue] = useState<ThemeChoice>('purple')
+  const [value, setValue] = useState<ThemeChoice>(() => {
+    try {
+      return (localStorage.getItem('theme') as ThemeChoice | null) || 'purple'
+    } catch {
+      return 'purple'
+    }
+  })
 
   useEffect(() => {
-    try {
-      const saved = (localStorage.getItem('theme') as ThemeChoice | null) || 'purple'
-      setValue(saved)
-      applyThemeClass(saved)
-    } catch {}
-  }, [])
+    applyThemeClass(value)
+  }, [value])
 
   function onValueChange(next: ThemeChoice) {
     setValue(next)
-    applyThemeClass(next)
     try {
       localStorage.setItem('theme', next)
-    } catch {}
+    } catch {
+      void 0
+    }
   }
 
   return (

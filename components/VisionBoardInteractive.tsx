@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from 'next/image';
 
 type NoteColor =
   | "red"
@@ -123,7 +124,7 @@ export default function VisionBoardInteractive() {
           if (parsed?.sections) setSections(parsed.sections);
           if (parsed?.images) setImages(parsed.images);
         }
-      } catch {}
+    } catch { void 0 }
     }, 0);
     return () => {
       ac.abort();
@@ -136,7 +137,7 @@ export default function VisionBoardInteractive() {
     const t = setTimeout(() => {
       try {
         localStorage.setItem("vision-board@state", JSON.stringify({ sections, images }));
-      } catch {}
+    } catch { void 0 }
     }, 0);
     return () => {
       ac.abort();
@@ -245,7 +246,7 @@ export default function VisionBoardInteractive() {
       const nextY = Math.min(Math.max(baseY + dy, minY), maxY);
       setSections((prev) => prev.map((s) => (s.id === id ? { ...s, x: nextX, y: nextY } : s)));
     }
-    function onUp(ev: PointerEvent) {
+    function onUp() {
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
       setDragId(null);
@@ -304,21 +305,6 @@ export default function VisionBoardInteractive() {
     );
   }
 
-  function addSection() {
-    const cap = DEFAULT_SECTIONS.length + 1; // allow only one extra section globally
-    if (sections.length >= cap) return;
-    const newSection: Section = {
-      id: uid(),
-      title: "NEW SECTION",
-      x: 320,
-      y: 220,
-      notes: [
-        { id: uid(), text: "Note A", color: "pink" },
-        { id: uid(), text: "Note B", color: "purple" },
-      ],
-    };
-    setSections((prev) => [...prev, newSection]);
-  }
 
   function deleteSection(id: string) {
     setSections((prev) => prev.filter((s) => s.id !== id));
@@ -490,7 +476,7 @@ export default function VisionBoardInteractive() {
             style={{ width: img.size, height: img.size }}
             onPointerDown={(e) => onPointerDownImage(e, img.id)}
           >
-            <img src={img.src} alt="photo" className="w-full h-full object-cover" draggable={false} />
+            <Image src={img.src} alt="photo" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" draggable={false} unoptimized />
             {/* Resize handle */}
             <div
               className="absolute bottom-1 right-1 w-3 h-3 bg-neutral-400 rounded-sm cursor-se-resize"

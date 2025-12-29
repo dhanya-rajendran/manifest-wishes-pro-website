@@ -78,6 +78,11 @@ type ProfileData = {
   profile: { dob?: string | null; profileImageUrl?: string | null; bio?: string | null; timezone?: string | null } | null
 }
 
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message
+  try { return String(e) } catch { return '' }
+}
+
 export default function ProfilePage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -111,43 +116,52 @@ export default function ProfilePage() {
       try {
         const res = await fetch('/api/user/profile', { credentials: 'include' })
         const ct = res.headers.get('content-type') || ''
-        let data: any = null
+        let raw: unknown = null
         if (ct.includes('application/json')) {
-          data = await res.json()
+          raw = await res.json()
         } else {
           const text = await res.text()
           throw new Error(text || 'Failed to load profile')
         }
-        if (!res.ok) throw new Error(data?.error || 'Failed to load profile')
+        if (!res.ok) {
+          let errMsg = ''
+          if (typeof raw === 'object' && raw !== null) {
+            const maybeError = (raw as { error?: unknown }).error
+            if (typeof maybeError === 'string') errMsg = maybeError
+          }
+          throw new Error(errMsg || 'Failed to load profile')
+        }
+        const data = raw as ProfileData
         setBase(data)
         setPhone(data.user.phone ?? null)
         // Attempt to parse structured extras from bio if JSON
-        let extras: any = null
+        let extras: unknown = null
         try {
           extras = data.profile?.bio ? JSON.parse(data.profile.bio) : null
         } catch {
           extras = null
         }
+        const extrasObj = typeof extras === 'object' && extras !== null ? (extras as Record<string, unknown>) : {}
         form.reset({
           gender: data.user.gender ?? null,
           dob: data.profile?.dob ?? null,
           profileImageUrl: data.profile?.profileImageUrl ?? null,
-          bio: extras?.bioText ?? data.profile?.bio ?? null,
+          bio: typeof extrasObj.bioText === 'string' ? extrasObj.bioText : (data.profile?.bio ?? null),
           timezone: data.profile?.timezone ?? null,
         })
         setAvatarUrl(data.profile?.profileImageUrl ?? null)
-        setGoals(Array.isArray(extras?.goals) ? extras.goals : [])
-        setGoalsDate(extras?.goalsTargetDate ?? null)
-        setInterests(Array.isArray(extras?.interests) ? extras.interests : [])
-        setHobbies(Array.isArray(extras?.hobbies) ? extras.hobbies : [])
-      } catch (e: any) {
-        setError(e?.message || 'Failed to load')
+        setGoals(Array.isArray(extrasObj.goals) ? (extrasObj.goals as unknown[]).filter((x): x is string => typeof x === 'string') : [])
+        setGoalsDate(typeof extrasObj.goalsTargetDate === 'string' ? extrasObj.goalsTargetDate : null)
+        setInterests(Array.isArray(extrasObj.interests) ? (extrasObj.interests as unknown[]).filter((x): x is string => typeof x === 'string') : [])
+        setHobbies(Array.isArray(extrasObj.hobbies) ? (extrasObj.hobbies as unknown[]).filter((x): x is string => typeof x === 'string') : [])
+      } catch (e: unknown) {
+        setError(getErrorMessage(e) || 'Failed to load')
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [])
+  }, [form])
 
   const handleSubmit = form.handleSubmit(async (values) => {
     setError('')
@@ -173,12 +187,12 @@ export default function ProfilePage() {
         const text = await res.text()
         throw new Error(text || 'Failed to save')
       }
-    } catch (e: any) {
-      setError(e?.message || 'Failed to save')
+    } catch (e: unknown) {
+      setError(getErrorMessage(e) || 'Failed to save')
     }
   })
 
-  async function handleAvatarFileChange(file: { file: File | any } | null) {
+  async function handleAvatarFileChange(file: { file: File | unknown } | null) {
     if (!file || !(file.file instanceof File)) return
     setError('')
     const fd = new FormData()
@@ -198,8 +212,8 @@ export default function ProfilePage() {
         const text = await res.text()
         throw new Error(text || 'Failed to upload avatar')
       }
-    } catch (e: any) {
-      setError(e?.message || 'Avatar upload failed')
+    } catch (e: unknown) {
+      setError(getErrorMessage(e) || 'Avatar upload failed')
     }
   }
 
@@ -221,8 +235,8 @@ export default function ProfilePage() {
         throw new Error(text || 'Failed to reset password')
       }
       alert('Password updated')
-    } catch (e: any) {
-      setError(e?.message || 'Failed to reset password')
+    } catch (e: unknown) {
+      setError(getErrorMessage(e) || 'Failed to reset password')
     }
   }
 

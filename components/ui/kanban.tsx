@@ -41,7 +41,7 @@ interface KanbanContextProps<T> {
   isColumn: (id: UniqueIdentifier) => boolean;
 }
 
-const KanbanContext = React.createContext<KanbanContextProps<any>>({
+const KanbanContext = React.createContext<KanbanContextProps<unknown>>({
   columns: {},
   setColumns: () => {},
   getItemId: () => '',
@@ -478,7 +478,7 @@ function KanbanOverlay({ children, className }: KanbanOverlayProps) {
     } else {
       setDimensions(null);
     }
-  }, [activeId]);
+  }, [activeId, isColumn]);
 
   const style = {
     width: dimensions?.width,

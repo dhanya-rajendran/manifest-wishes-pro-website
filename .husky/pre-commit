@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Run ESLint and block commits on errors (warnings allowed)
-npm run lint
+# Run ESLint in CI mode and block commits on warnings and errors
+npm run lint:ci

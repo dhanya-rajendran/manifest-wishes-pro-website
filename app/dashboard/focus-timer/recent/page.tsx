@@ -37,6 +37,55 @@ interface FocusSession {
 
 interface ApiResponse { ok: boolean; sessions: FocusSession[]; total: number }
 
+// Sub-grid rows representing session events (hoisted)
+type EventRow = { id: string; type: 'Paused' | 'Resumed' | 'Stopped'; at: string }
+
+function SessionEventsSubTable({ items }: { items: EventRow[] }) {
+  const [subPagination, setSubPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 5 })
+  const [subSorting, setSubSorting] = React.useState<SortingState>([])
+
+  const subColumns = React.useMemo<ColumnDef<EventRow>[]>(() => [
+    {
+      accessorKey: 'type',
+      header: ({ column }) => <DataGridColumnHeader title="Event" column={column} />, 
+      cell: ({ row }) => {
+        const t = row.original.type
+        const variant: 'secondary' | 'primary' | 'destructive' = t === 'Paused' ? 'secondary' : t === 'Resumed' ? 'primary' : 'destructive'
+        return <Badge variant={variant}>{t}</Badge>
+      },
+      enableSorting: true,
+      size: 140,
+    },
+    {
+      accessorKey: 'at',
+      header: ({ column }) => <DataGridColumnHeader title="Timestamp" column={column} />, 
+      cell: ({ row }) => fmt(row.original.at),
+      enableSorting: true,
+      size: 220,
+    },
+  ], [])
+
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const subTable = useReactTable({ data: items, columns: subColumns, pageCount: Math.ceil(items.length / subPagination.pageSize), state: { sorting: subSorting, pagination: subPagination }, onSortingChange: setSubSorting, onPaginationChange: setSubPagination, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), getPaginationRowModel: getPaginationRowModel(), getRowId: (row: EventRow) => row.id })
+  return (
+    <div className="bg-muted/30 p-3">
+      <DataGrid table={subTable} recordCount={items.length} tableLayout={{ cellBorder: true, rowBorder: true, headerBackground: true, headerBorder: true }}>
+        <div className="w-full space-y-2.5">
+          <div className="bg-card rounded-lg border border-muted-foreground/20">
+            <DataGridContainer>
+              <ScrollArea>
+                <DataGridTable />
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </DataGridContainer>
+          </div>
+          <DataGridPagination className="pb-1.5" />
+        </div>
+      </DataGrid>
+    </div>
+  )
+}
+
 function fmt(dt: string | null) {
   if (!dt) return '-'
   try {
@@ -61,9 +110,6 @@ export default function RecentSessionsPage() {
   const [expanded, setExpanded] = React.useState<ExpandedState>({})
   const [sorting, setSorting] = React.useState<SortingState>([])
 
-  // Sub-grid rows representing session events
-  type EventRow = { id: string; type: 'Paused' | 'Resumed' | 'Stopped'; at: string }
-
   const buildEventRows = React.useCallback((sess: FocusSession): EventRow[] => {
     const events: EventRow[] = []
     for (const p of sess.pauses ?? []) {
@@ -76,63 +122,7 @@ export default function RecentSessionsPage() {
     return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
   }, [])
 
-  function SessionEventsSubTable({ items }: { items: EventRow[] }) {
-    const [subPagination, setSubPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 5 })
-    const [subSorting, setSubSorting] = React.useState<SortingState>([])
-
-    const subColumns = React.useMemo<ColumnDef<EventRow>[]>(() => [
-      {
-        accessorKey: 'type',
-        header: ({ column }) => <DataGridColumnHeader title="Event" column={column} />,
-        cell: ({ row }) => {
-          const t = row.original.type
-          const variant: 'secondary' | 'primary' | 'destructive' =
-            t === 'Paused' ? 'secondary' : t === 'Resumed' ? 'primary' : 'destructive'
-          return <Badge variant={variant}>{t}</Badge>
-        },
-        enableSorting: true,
-        size: 140,
-      },
-      {
-        accessorKey: 'at',
-        header: ({ column }) => <DataGridColumnHeader title="Timestamp" column={column} />,
-        cell: ({ row }) => fmt(row.original.at),
-        enableSorting: true,
-        size: 220,
-      },
-    ], [])
-
-    const subTable = useReactTable({
-      data: items,
-      columns: subColumns,
-      pageCount: Math.ceil(items.length / subPagination.pageSize),
-      state: { sorting: subSorting, pagination: subPagination },
-      onSortingChange: setSubSorting,
-      onPaginationChange: setSubPagination,
-      getCoreRowModel: getCoreRowModel(),
-      getSortedRowModel: getSortedRowModel(),
-      getPaginationRowModel: getPaginationRowModel(),
-      getRowId: (row: EventRow) => row.id,
-    })
-
-    return (
-      <div className="bg-muted/30 p-3">
-        <DataGrid table={subTable} recordCount={items.length} tableLayout={{ cellBorder: true, rowBorder: true, headerBackground: true, headerBorder: true }}>
-          <div className="w-full space-y-2.5">
-            <div className="bg-card rounded-lg border border-muted-foreground/20">
-              <DataGridContainer>
-                <ScrollArea>
-                  <DataGridTable />
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </DataGridContainer>
-            </div>
-            <DataGridPagination className="pb-1.5" />
-          </div>
-        </DataGrid>
-      </div>
-    )
-  }
+  
 
   const columns = React.useMemo<ColumnDef<FocusSession, unknown>[]>(() => [
     {
@@ -239,7 +229,7 @@ export default function RecentSessionsPage() {
         const json = await res.json()
         const sess = json.session as { id: string; mode: TimerMode; startAt: string; endAt: string | null; targetEnd: string | null } | null
         if (!cancelled) setActive(sess ?? null)
-      } catch {}
+      } catch { void 0 }
     }
     void loadActive()
     return () => { cancelled = true }

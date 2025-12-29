@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from 'react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +9,7 @@ import AddTaskDialog from '@/components/add-task-dialog'
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { toast } from 'sonner'
+// Removed unused toast import
 
 type Task = { id: string; title: string; category?: string; createdAt?: string; done?: boolean }
 
@@ -17,9 +17,7 @@ function formatDate(date: Date) {
   return date.toISOString().slice(0, 10)
 }
 
-function truncateText(s: string, n = 12) {
-  return s.length > n ? `${s.slice(0, n)}…` : s
-}
+// removed unused truncateText helper
 
 function getMonthRange(date: Date) {
   const year = date.getFullYear()
@@ -48,7 +46,7 @@ export default function TasksCalendar() {
   const [current, setCurrent] = React.useState(() => new Date())
   const [tasks, setTasks] = React.useState<Task[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+  // removed unused error state
 
   const [categories, setCategories] = React.useState<string[]>([])
   const [canAddCategory, setCanAddCategory] = React.useState(false)
@@ -66,30 +64,28 @@ export default function TasksCalendar() {
         setCategories(data.categories || [])
         setCanAddCategory(Boolean(data.canAdd))
       }
-    } catch {}
+    } catch { void 0 }
   }
 
-  async function loadTasks() {
+  const loadTasks = React.useCallback(async () => {
     setLoading(true)
-    setError(null)
     const { start, end } = getMonthRange(current)
     const params = new URLSearchParams({ createdFrom: start, createdTo: end, limit: '100' })
     try {
       const res = await fetch(`/api/tasks?${params.toString()}`, { credentials: 'include' })
       const data = await res.json().catch(() => null)
       if (!data?.ok) {
-        setError('Failed to load tasks')
         setTasks([])
       } else {
         setTasks((data.tasks || []) as Task[])
       }
     } catch (e) {
-      setError('Failed to load tasks')
+      console.log("🚀 ~ loadTasks ~ e:", e)
       setTasks([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [current])
 
   React.useEffect(() => {
     loadCategories()
@@ -97,7 +93,7 @@ export default function TasksCalendar() {
 
   React.useEffect(() => {
     loadTasks()
-  }, [current])
+  }, [loadTasks])
 
   const byDate = React.useMemo(() => {
     const map = new Map<string, Task[]>()

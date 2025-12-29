@@ -9,11 +9,11 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   // Clean up existing tokens
-  await (prisma as any).emailVerificationToken.deleteMany({ where: { userId: user.id } })
+  await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
 
   const token = crypto.randomBytes(24).toString('hex')
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24) // 24h
-  await (prisma as any).emailVerificationToken.create({
+  await prisma.emailVerificationToken.create({
     data: { id: crypto.randomUUID(), userId: user.id, token, expiresAt },
   })
 

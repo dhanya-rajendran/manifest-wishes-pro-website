@@ -1,6 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
-import { toast } from 'sonner'
+import { useEffect, useMemo, useState, useCallback, type ChangeEvent } from 'react'
 import { Briefcase, HeartPulse, User, Target, Tag } from 'lucide-react'
 import AddTaskDialog from '@/components/add-task-dialog'
 import { Button } from '@/components/ui/button'
@@ -39,7 +38,7 @@ export default function TasksPanel() {
     }
   }
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true)
       const url = filter === 'all' ? '/api/tasks' : `/api/tasks?category=${encodeURIComponent(filter)}`
@@ -52,9 +51,9 @@ export default function TasksPanel() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filter])
 
-  useEffect(() => { loadTasks() }, [filter])
+  useEffect(() => { loadTasks() }, [loadTasks])
   useEffect(() => { loadCategories() }, [])
 
   
@@ -69,7 +68,7 @@ export default function TasksPanel() {
       })
       if (!res.ok) throw new Error('Failed to update')
       await loadTasks()
-    } catch {}
+    } catch { void 0 }
   }
 
   const removeTask = async (id: string) => {
@@ -77,7 +76,7 @@ export default function TasksPanel() {
       const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE', credentials: 'include' })
       if (!res.ok) throw new Error('Failed to delete')
       await loadTasks()
-    } catch {}
+    } catch { void 0 }
   }
 
   const clearAll = async () => {
@@ -88,7 +87,7 @@ export default function TasksPanel() {
       const res = await fetch('/api/tasks', { method: 'DELETE', credentials: 'include' })
       if (!res.ok) throw new Error('Failed to clear')
       await loadTasks()
-    } catch {}
+    } catch { void 0 }
   }
 
   const filtered = useMemo(() => {

@@ -5,7 +5,6 @@ import type { VariantProps } from 'class-variance-authority';
 import { Button } from '@/components/ui/button';
 import AddTaskDialog from '@/components/add-task-dialog';
 import { Plus, GripVertical, Briefcase, Heart, User, Target, Tag, Car, Newspaper, Bell } from 'lucide-react';
-import { toast } from 'sonner';
 import {
   Kanban,
   KanbanBoard,
@@ -164,10 +163,9 @@ function TaskCard({ task, ...props }: TaskCardProps) {
 
 interface TaskColumnProps extends Omit<React.ComponentProps<typeof KanbanColumn>, 'children'> {
   tasks: Task[];
-  isOverlay?: boolean;
 }
 
-function TaskColumn({ value, tasks, isOverlay, ...props }: TaskColumnProps) {
+function TaskColumn({ value, tasks, ...props }: TaskColumnProps) {
   return (
     <KanbanColumn value={value} {...props} className={COLUMN_BG[value] ?? 'rounded-md border bg-card p-2.5 shadow-xs'}>
       <div className="flex items-center justify-between mb-2.5">
@@ -293,7 +291,7 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ done: c.column === 'done' }),
         });
-      } catch {}
+      } catch { void 0 }
     }
   };
 
@@ -338,7 +336,7 @@ export default function TasksKanban({ filters = [] }: { filters?: Filter[] }) {
         {({ value, variant }) => {
           if (variant === 'column') {
             const tasks = columns[value] ?? [];
-            return <TaskColumn value={String(value)} tasks={tasks} isOverlay />;
+            return <TaskColumn value={String(value)} tasks={tasks} />;
           }
 
           const task = Object.values(columns)

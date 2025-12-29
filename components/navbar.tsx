@@ -18,7 +18,6 @@ import {
   AccordionMenuIndicator,
 } from '@/components/ui/accordion-menu'
 import {
-  ChevronRightIcon,
   ClipboardIcon,
   HomeIcon,
   FileTextIcon,

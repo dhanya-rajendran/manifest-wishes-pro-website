@@ -21,12 +21,22 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // Use Prisma Client if the UserProfile model exists; otherwise fall back to raw SQL.
-  let profile: any = null
-  const client: any = prisma
-  if (client.userProfile?.findUnique) {
-    profile = await client.userProfile.findUnique({ where: { userId } })
+  type UserProfileRow = {
+    id: number
+    userId: number
+    dob: Date | null
+    profileImageUrl: string | null
+    bio: string | null
+    timezone: string | null
+    createdAt: Date
+    updatedAt: Date
+  }
+  let profile: UserProfileRow | null = null
+  const maybeProfile = prisma as unknown as { userProfile?: { findUnique?: (args: { where: { userId: number } }) => Promise<UserProfileRow | null> } }
+  if (maybeProfile.userProfile?.findUnique) {
+    profile = await maybeProfile.userProfile.findUnique({ where: { userId } })
   } else {
-    const rows = (await prisma.$queryRaw`SELECT id, userId, dob, profileImageUrl, bio, timezone, createdAt, updatedAt FROM UserProfile WHERE userId = ${userId} LIMIT 1`) as any[]
+    const rows = (await prisma.$queryRaw`SELECT id, userId, dob, profileImageUrl, bio, timezone, createdAt, updatedAt FROM UserProfile WHERE userId = ${userId} LIMIT 1`) as unknown as UserProfileRow[]
     profile = Array.isArray(rows) && rows.length ? rows[0] : null
   }
 
@@ -66,10 +76,10 @@ export async function PUT(req: Request) {
   })
 
   // Upsert profile via Prisma if available; otherwise use a safe SQL upsert.
-  let updatedProfile: any = null
-  const client: any = prisma
-  if (client.userProfile?.upsert) {
-    updatedProfile = await client.userProfile.upsert({
+  let updatedProfile: UserProfileRow | null = null
+  const maybeUpsert = prisma as unknown as { userProfile?: { upsert?: (args: unknown) => Promise<UserProfileRow> } }
+  if (maybeUpsert.userProfile?.upsert) {
+    updatedProfile = await maybeUpsert.userProfile.upsert({
       where: { userId },
       update: {
         dob: dob ? new Date(dob) : undefined,
@@ -94,7 +104,7 @@ export async function PUT(req: Request) {
     await prisma.$executeRaw`INSERT INTO UserProfile (userId, dob, profileImageUrl, bio, timezone)
       VALUES (${userId}, ${dobDate}, ${pic}, ${bioText}, ${tz})
       ON DUPLICATE KEY UPDATE dob = VALUES(dob), profileImageUrl = VALUES(profileImageUrl), bio = VALUES(bio), timezone = VALUES(timezone)`
-    const rows = (await prisma.$queryRaw`SELECT id, userId, dob, profileImageUrl, bio, timezone, createdAt, updatedAt FROM UserProfile WHERE userId = ${userId} LIMIT 1`) as any[]
+    const rows = (await prisma.$queryRaw`SELECT id, userId, dob, profileImageUrl, bio, timezone, createdAt, updatedAt FROM UserProfile WHERE userId = ${userId} LIMIT 1`) as unknown as UserProfileRow[]
     updatedProfile = Array.isArray(rows) && rows.length ? rows[0] : null
   }
 

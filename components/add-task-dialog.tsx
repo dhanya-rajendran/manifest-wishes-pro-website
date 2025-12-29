@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Badge } from "@/components/ui/badge";
 import { Tag, Plus, Briefcase, HeartPulse, User, Target } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,8 +83,9 @@ export default function AddTaskDialog({
       if (!isEdit) setNewTitle("");
       onOpenChange(false);
       onSuccess?.();
-    } catch (e: any) {
-      toast.error(e?.message || "Error creating task");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Error creating task"
+      toast.error(msg);
     } finally {
       setCreating(false);
     }
@@ -106,8 +106,9 @@ export default function AddTaskDialog({
       // Immediately reflect newly added category in the list and select it
       setLocalCategories((prev) => Array.from(new Set([...(prev || []), name])));
       setNewCategory(name);
-    } catch (e: any) {
-      toast.error(e?.message || "Error adding category");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Error adding category"
+      toast.error(msg);
     }
   };
 

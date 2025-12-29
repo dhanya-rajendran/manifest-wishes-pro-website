@@ -1,6 +1,6 @@
 "use client"
 export const dynamic = 'force-dynamic'
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/base-button'
 import { Input } from '@/components/ui/base-input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -34,6 +34,46 @@ type FocusSession = {
 }
 interface ApiResponse { ok: boolean; sessions: FocusSession[]; total: number }
 
+// Shared helpers and types (hoisted to module scope)
+function fmt(dt: string | null) {
+  if (!dt) return '-'
+  try { return new Date(dt).toLocaleString() } catch { return dt ?? '-' }
+}
+type EventRow = { id: string; type: 'Paused' | 'Resumed' | 'Stopped'; at: string }
+
+// Sub-table component for expanded events (hoisted out of FocusTimerContent)
+function SessionEventsSubTable({ items }: { items: EventRow[] }) {
+  const [subPagination, setSubPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 })
+  const [subSorting, setSubSorting] = useState<SortingState>([])
+  const subColumns = useMemo<ColumnDef<EventRow>[]>(() => [
+    { accessorKey: 'type', header: ({ column }) => <DataGridColumnHeader title="Event" column={column} />, cell: ({ row }) => {
+        const t = row.original.type
+        const variant: 'secondary' | 'primary' | 'destructive' = t === 'Paused' ? 'secondary' : t === 'Resumed' ? 'primary' : 'destructive'
+        return <Badge variant={variant} appearance="light">{t}</Badge>
+      }, enableSorting: true, size: 140 },
+    { accessorKey: 'at', header: ({ column }) => <DataGridColumnHeader title="Timestamp" column={column} />, cell: ({ row }) => fmt(row.original.at), enableSorting: true, size: 220 },
+  ], [])
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const subTable = useReactTable({ data: items, columns: subColumns, pageCount: Math.ceil(items.length / subPagination.pageSize), state: { sorting: subSorting, pagination: subPagination }, onSortingChange: setSubSorting, onPaginationChange: setSubPagination, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), getPaginationRowModel: getPaginationRowModel(), getRowId: (row: EventRow) => row.id })
+  return (
+    <div className="bg-muted/30 p-3">
+      <DataGrid table={subTable} recordCount={items.length} tableLayout={{ cellBorder: true, rowBorder: true, headerBackground: true, headerBorder: true }}>
+        <div className="w-full space-y-2.5">
+          <div className="bg-card rounded-lg border border-muted-foreground/20">
+            <DataGridContainer>
+              <ScrollArea>
+                <DataGridTable />
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </DataGridContainer>
+          </div>
+          <DataGridPagination className="pb-1.5" />
+        </div>
+      </DataGrid>
+    </div>
+  )
+}
+
 function FocusTimerContent() {
   const { running, paused, mode, durationMin, remaining, note, restoring, setNote, setDurationMin, setMode, start, pause, resume, stopAndSave } = useFocusTimer()
   const [toast, setToast] = useState<{ message: string; type?: 'success' | 'error' } | null>(null)
@@ -55,13 +95,8 @@ function FocusTimerContent() {
     { key: 'createdAt', label: 'Created', type: 'dateRange', className: 'w-[360px]' },
   ]
 
-  // Helpers and types
-  function fmt(dt: string | null) {
-    if (!dt) return '-'
-    try { return new Date(dt).toLocaleString() } catch { return dt ?? '-' }
-  }
-  type EventRow = { id: string; type: 'Paused' | 'Resumed' | 'Stopped'; at: string }
-  const buildEventRows = (sess: FocusSession): EventRow[] => {
+  // Helpers
+  const buildEventRows = useCallback((sess: FocusSession): EventRow[] => {
     const events: EventRow[] = []
     for (const p of sess.pauses ?? []) {
       events.push({ id: `pause-${p.id}`, type: 'Paused', at: p.startAt })
@@ -69,39 +104,8 @@ function FocusTimerContent() {
     }
     for (const s of sess.stops ?? []) { events.push({ id: `stop-${s.id}`, type: 'Stopped', at: s.stopAt }) }
     return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
-  }
+  }, [])
 
-  // Sub-table component for expanded events
-  function SessionEventsSubTable({ items }: { items: EventRow[] }) {
-    const [subPagination, setSubPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 })
-    const [subSorting, setSubSorting] = useState<SortingState>([])
-    const subColumns = useMemo<ColumnDef<EventRow>[]>(() => [
-      { accessorKey: 'type', header: ({ column }) => <DataGridColumnHeader title="Event" column={column} />, cell: ({ row }) => {
-          const t = row.original.type
-          const variant: 'secondary' | 'primary' | 'destructive' = t === 'Paused' ? 'secondary' : t === 'Resumed' ? 'primary' : 'destructive'
-          return <Badge variant={variant} appearance="light">{t}</Badge>
-        }, enableSorting: true, size: 140 },
-      { accessorKey: 'at', header: ({ column }) => <DataGridColumnHeader title="Timestamp" column={column} />, cell: ({ row }) => fmt(row.original.at), enableSorting: true, size: 220 },
-    ], [])
-    const subTable = useReactTable({ data: items, columns: subColumns, pageCount: Math.ceil(items.length / subPagination.pageSize), state: { sorting: subSorting, pagination: subPagination }, onSortingChange: setSubSorting, onPaginationChange: setSubPagination, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), getPaginationRowModel: getPaginationRowModel(), getRowId: (row: EventRow) => row.id })
-    return (
-      <div className="bg-muted/30 p-3">
-        <DataGrid table={subTable} recordCount={items.length} tableLayout={{ cellBorder: true, rowBorder: true, headerBackground: true, headerBorder: true }}>
-          <div className="w-full space-y-2.5">
-            <div className="bg-card rounded-lg border border-muted-foreground/20">
-              <DataGridContainer>
-                <ScrollArea>
-                  <DataGridTable />
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </DataGridContainer>
-            </div>
-            <DataGridPagination className="pb-1.5" />
-          </div>
-        </DataGrid>
-      </div>
-    )
-  }
 
   // Main grid columns and table
   const columns = useMemo<ColumnDef<FocusSession, unknown>[]>(() => [
@@ -125,7 +129,7 @@ function FocusTimerContent() {
     { accessorKey: 'note', header: ({ column }) => <DataGridColumnHeader title="Note" column={column} />, cell: ({ row }) => <span className="truncate inline-block max-w-[280px]">{row.original.note || '-'}</span>, enableSorting: false, size: 240 },
     { id: 'status', header: ({ column }) => <DataGridColumnHeader title="Status" column={column} />, cell: ({ row }) => { const s = row.original; const isRunning = !!s.targetEnd && !s.endAt; const isPaused = !s.targetEnd && !s.endAt; const isStopped = !!s.endAt; if (isRunning) return <Badge variant="success" appearance="light" className="gap-1"><PlayCircle className="h-3.5 w-3.5" /> Running</Badge>; if (isPaused) return <Badge variant="warning" appearance="light" className="gap-1"><PauseCircle className="h-3.5 w-3.5" /> Paused</Badge>; if (isStopped) return <Badge variant="destructive" appearance="light" className="gap-1">Stopped</Badge>; return <Badge variant="outline">-</Badge> }, enableSorting: false, size: 140 },
     // removed actions button column; expand is now a simple [+] in the first column
-  ], [])
+  ], [buildEventRows])
   const canExpand = (row: Row<FocusSession>) => { const sess = row.original; const hasPauses = Array.isArray(sess.pauses) && sess.pauses.length > 0; const hasStops = Array.isArray(sess.stops) && sess.stops.length > 0; return hasPauses || hasStops }
   const table = useReactTable({
     data,
@@ -144,7 +148,7 @@ function FocusTimerContent() {
   })
 
   // Data fetch
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setLoadingRecent(true)
     try {
       const params = new URLSearchParams()
@@ -172,8 +176,8 @@ function FocusTimerContent() {
     } finally {
       setLoadingRecent(false)
     }
-  }
-  useEffect(() => { void fetchData() }, [filters, pagination.pageIndex, pagination.pageSize])
+  }, [filters, pagination.pageIndex, pagination.pageSize, router, pathname])
+  useEffect(() => { void fetchData() }, [fetchData])
   useEffect(() => {
     if (!searchParams) return
     const next: Filter[] = []
@@ -183,7 +187,6 @@ function FocusTimerContent() {
     if (mode) next.push(createFilter('mode', 'is', [mode]))
     if (createdFrom || createdTo) next.push(createFilter('createdAt', 'between', [createdFrom ?? '', createdTo ?? '']))
     setFilters(next)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
   async function handleStopSave() {
@@ -194,7 +197,7 @@ function FocusTimerContent() {
         el.pause()
         el.currentTime = 0
       }
-    } catch {}
+    } catch { void 0 }
     await stopAndSave()
     setToast({ message: 'Session saved', type: 'success' })
     // Refresh recent grid after saving
@@ -213,10 +216,10 @@ function FocusTimerContent() {
     try {
       const v = typeof window !== 'undefined' ? window.localStorage.getItem('focus-timer-sound') : null
       if (v === 'off') setSoundEnabled(false)
-    } catch {}
+    } catch { void 0 }
   }, [])
   useEffect(() => {
-    try { window.localStorage.setItem('focus-timer-sound', soundEnabled ? 'on' : 'off') } catch {}
+    try { window.localStorage.setItem('focus-timer-sound', soundEnabled ? 'on' : 'off') } catch { void 0 }
   }, [soundEnabled])
   // React to mute/unmute: ensure audio element reflects the state
   useEffect(() => {
@@ -238,9 +241,9 @@ function FocusTimerContent() {
           }
         }
       }
-    } catch {}
+    } catch { void 0 }
   }, [soundEnabled, running, paused])
-  function playAffirmation() {
+  const playAffirmation = useCallback(() => {
     const el = audioRef.current
     if (!el || !soundEnabled) return
     try {
@@ -249,23 +252,23 @@ function FocusTimerContent() {
       if (p && typeof (p as Promise<void>).then === 'function') {
         void (p as Promise<void>).then(() => setSoundUnlockNeeded(false)).catch(() => setSoundUnlockNeeded(true))
       }
-    } catch {}
-  }
-  function stopAffirmation(reset: boolean = true) {
+    } catch { void 0 }
+  }, [soundEnabled])
+  const stopAffirmation = useCallback((reset: boolean = true) => {
     const el = audioRef.current
     if (!el) return
     try {
       el.pause()
       if (reset) el.currentTime = 0
-    } catch {}
-  }
+    } catch { void 0 }
+  }, [])
 
   // Ensure audio is stopped when timer is paused or stopped
   useEffect(() => {
     if (paused || !running) {
       stopAffirmation(true)
     }
-  }, [paused, running])
+  }, [paused, running, stopAffirmation])
 
   // On refresh (initial hydration), if an active running session exists and is not paused, play audio once
   useEffect(() => {
@@ -274,7 +277,7 @@ function FocusTimerContent() {
       playAffirmation()
       didAutoPlayOnMountRef.current = true
     }
-  }, [running, paused])
+  }, [running, paused, playAffirmation])
 
   return (
     <div className="space-y-6">
@@ -430,7 +433,7 @@ function FocusTimerContent() {
           onChange={(next) => setFilters(next)}
         />
 
-        <DataGrid table={table} recordCount={total} tableLayout={{ headerBackground: true, headerBorder: true, rowBorder: true }}>
+        <DataGrid table={table} recordCount={total} aria-busy={loadingRecent} tableLayout={{ headerBackground: true, headerBorder: true, rowBorder: true }}>
           <div className="w-full space-y-2.5">
             <DataGridContainer>
               <ScrollArea>

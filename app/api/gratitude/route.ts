@@ -35,16 +35,17 @@ export async function POST(request: Request) {
   const user = getUserFromCookie(request)
   if (!user || user.id === 'demo') return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
 
-  let body: any
+  let body: unknown
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const period: string | undefined = body?.period
-  const periodKey: string | undefined = body?.periodKey
-  const payload: unknown = body?.payload
+  const obj = typeof body === 'object' && body ? (body as Record<string, unknown>) : null
+  const period: string | undefined = obj && typeof obj.period === 'string' ? obj.period : undefined
+  const periodKey: string | undefined = obj && typeof obj.periodKey === 'string' ? obj.periodKey : undefined
+  const payload: unknown = obj ? obj.payload : undefined
   if (!period || !periodKey || payload == null) {
     return NextResponse.json({ ok: false, error: 'Missing period, periodKey, or payload' }, { status: 400 })
   }

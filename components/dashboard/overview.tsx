@@ -33,7 +33,7 @@ export default function DashboardOverview() {
         } else {
           setData(json)
         }
-      } catch (e) {
+      } catch {
         setError('Failed to load metrics')
       } finally {
         setLoading(false)

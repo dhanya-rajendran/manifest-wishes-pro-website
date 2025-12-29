@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { format, startOfWeek, addDays } from 'date-fns'
 import { DayPicker } from 'react-day-picker'
 import { useRef } from 'react'
@@ -8,11 +8,7 @@ import { CalendarDays, CalendarRange, Calendar, Heart, Plus, Save, X } from 'luc
 import { Button } from '@/components/ui/base-button'
 import { Input } from '@/components/ui/base-input'
 
-type Entry = { id: number; period: string; periodKey: string; payload: unknown; createdAt: string }
-
-function isStringArray(val: unknown): val is string[] {
-  return Array.isArray(val) && val.every((v) => typeof v === 'string')
-}
+// Entry type removed (unused)
 
 function normalizePayloadToItems(val: unknown): string[] {
   if (typeof val === 'string') {
@@ -41,7 +37,6 @@ export default function GratitudePage() {
   const [items, setItems] = useState<string[]>([])
   const [newItem, setNewItem] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [entry, setEntry] = useState<Entry | null>(null)
 
   useEffect(() => {
     setPeriodKey(computePeriodKey(period, { day, weekStart, month }))
@@ -58,18 +53,17 @@ export default function GratitudePage() {
     return sel.month
   }
 
-  async function load(signal?: AbortSignal) {
+  const load = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       const params = new URLSearchParams({ period, periodKey })
       const res = await fetch(`/api/gratitude?${params.toString()}`, { credentials: 'include', signal })
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
-      setEntry(data.entry ?? null)
       const p = data.entry?.payload
       setItems(normalizePayloadToItems(p))
     } finally { setLoading(false) }
-  }
+  }, [period, periodKey])
 
   async function save() {
     const res = await fetch('/api/gratitude', {
@@ -94,7 +88,7 @@ export default function GratitudePage() {
     const ac = new AbortController()
     const t = window.setTimeout(() => { void load(ac.signal) }, 0)
     return () => { ac.abort(); window.clearTimeout(t) }
-  }, [period, periodKey])
+  }, [load])
 
   return (
     <div className="space-y-6">

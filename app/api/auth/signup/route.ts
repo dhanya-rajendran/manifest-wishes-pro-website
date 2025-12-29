@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const passwordHash = await hashPassword(password)
 
   // Construct create data while avoiding TS literal type errors if Prisma types are outdated.
-  const data: any = {
+  const data = {
     email,
     password: passwordHash,
     name,
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const user = await prisma.user.create({ data })
 
   // Ensure Free plan exists
-  const freePlan = await (prisma as any).subscriptionPlan.upsert({
+  const freePlan = await prisma.subscriptionPlan.upsert({
     where: { key: 'free' },
     update: {},
     create: {
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   })
 
   // Attach subscription to Free plan
-  await (prisma as any).userSubscription.create({
+  await prisma.userSubscription.create({
     data: {
       userId: user.id,
       planId: freePlan.id,
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   // Create email verification token and (placeholder) send link
   const token = crypto.randomBytes(24).toString('hex')
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24) // 24h
-  await (prisma as any).emailVerificationToken.create({
+  await prisma.emailVerificationToken.create({
     data: { id: crypto.randomUUID(), userId: user.id, token, expiresAt },
   })
   const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/api/auth/verify-email/confirm?token=${token}`

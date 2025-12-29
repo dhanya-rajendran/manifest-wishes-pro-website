@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react'
+import Image from 'next/image'
 
 type Slot = { id: string; url?: string }
 
@@ -74,8 +75,8 @@ export default function DreamCanvas() {
             >
               <div className="rounded bg-white p-1 shadow">
                 {slot.url ? (
-                  <div className="relative">
-                    <img src={slot.url} alt="vision" className="h-28 w-full rounded object-cover" />
+                  <div className="relative h-28">
+                    <Image src={slot.url} alt="vision" fill sizes="(max-width: 768px) 100vw, 33vw" className="rounded object-cover" unoptimized />
                     <div className="absolute bottom-1 right-1">
                       <button onClick={() => clearSlot(idx)} className="rounded bg-white/80 px-2 py-0.5 text-[11px]">Remove</button>
                     </div>
